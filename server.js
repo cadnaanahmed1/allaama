@@ -20,33 +20,6 @@ const PORT = process.env.PORT || 5000;
 // Enhanced CORS configuration
 // Add this after your middleware setup
 // Configure CORS to allow multiple origins
-// const whitelist = [
-//   'http://localhost:5500',
-//   'http://127.0.0.1:5500',
-//   'http://localhost:3000',
-//   'http://127.0.0.1:3000'
-// ];
-
-// const corsOptions = {
-//   origin: function (origin, callback) {
-//     if (whitelist.indexOf(origin) !== -1 || !origin) {
-//       return callback(null, true);
-//     } else {
-//       return callback(new Error('Not allowed by CORS'));
-//     }
-//   },
-//   credentials: true,
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization'],
-//   exposedHeaders: ['Content-Length', 'X-Requested-With'],
-//   optionsSuccessStatus: 200,
-//   maxAge: 86400 // 24 hours
-// };
-
-// app.use(cors(corsOptions));
-
-// // Add this pre-flight OPTIONS handler
-// app.options('*', cors(corsOptions));
 const whitelist = [
   'http://localhost:5500',
   'http://127.0.0.1:5500',
@@ -54,13 +27,9 @@ const whitelist = [
   'http://127.0.0.1:3000'
 ];
 
-if (process.env.NODE_ENV === 'production') {
-  whitelist.push('https://allaama-2.onrender.com');
-}
-
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || whitelist.indexOf(origin) !== -1) {
+    if (whitelist.indexOf(origin) !== -1 || !origin) {
       return callback(null, true);
     } else {
       return callback(new Error('Not allowed by CORS'));
@@ -71,10 +40,12 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['Content-Length', 'X-Requested-With'],
   optionsSuccessStatus: 200,
-  maxAge: 86400
+  maxAge: 86400 // 24 hours
 };
 
 app.use(cors(corsOptions));
+
+// Add this pre-flight OPTIONS handler
 app.options('*', cors(corsOptions));
 
 app.use(express.json());
