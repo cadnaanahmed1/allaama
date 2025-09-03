@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Allaama Online Academy</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <div class="logo">
+        <h1>Allaama Online<span>Academy</span></h1>
+      </div>
+      <!-- Mobile Menu Toggle -->
+      <div class="mobile-menu-toggle">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <nav>
+        <ul>
+          <li><a href="#" id="home-link">Home</a></li>
+          <li><a href="#" id="courses-link">Courses</a></li>
+          <li><a href="#" id="dashboard-link" style="display: none;">Dashboard</a></li>
+          <li><a href="#" id="admin-link" style="display: none;">Admin</a></li>
+          <li><a href="#" id="admin-settings-link" style="display: none;">Settings</a></li>
+          <li><a href="#" id="about-link">About</a></li>
+          <li><a href="#" id="contact-link">Contact</a></li>
+          <li><a href="#" id="login-link">Login</a></li>
+          <li><a href="#" id="signup-link">Signup</a></li>
+          <li><a href="#" id="logout-link" style="display: none;">Logout</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  
+  <!-- Main Content -->
+  <main>
+    <!-- Home Section -->
+    <section id="home-section" class="hero">
+      <div class="container">
+        <div class="hero-content">
+          <h1>Welcome to Allaama Online Academy</h1>
+          <p>Advance your career with our expert-led courses</p>
+          <div class="hero-stats">
+            <div class="stat">
+              <h3>100+</h3>
+              <p>Courses</p>
+            </div>
+            <div class="stat">
+              <h3>5000+</h3>
+              <p>Students</p>
+            </div>
+            <div class="stat">
+              <h3>95%</h3>
+              <p>Success Rate</p>
+            </div>
+          </div>
+          <a href="#" id="explore-courses" class="cta-button">Explore Courses</a>
+        </div>
+        <div class="hero-image">
+          <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3" alt="Online Learning">
+        </div>
+      </div>
+    </section>
+    
+    <!-- Login Section -->
+    <section id="login-section" class="auth-section" style="display: none;">
+      <div class="container">
+        <div class="auth-container">
+          <h2>Login to Your Account</h2>
+          <form id="login-form">
+            <div class="form-group">
+              <input type="email" id="login-email" placeholder="Email" required>
+            </div>
+            <div class="form-group">
+              <input type="password" id="login-password" placeholder="Password" required>
+            </div>
+            <button type="submit" class="cta-button">Login</button>
+          </form>
+          <div id="login-message" class="message"></div>
+          <div class="auth-links">
+            <a href="#" id="show-forgot-password">Forgot Password?</a>
+            <a href="#" id="show-signup">Create an Account</a>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Signup Section -->
+    <section id="signup-section" class="auth-section" style="display: none;">
+      <div class="container">
+        <div class="auth-container">
+          <h2>Create Your Account</h2>
+          <form id="signup-form">
+            <div class="form-group">
+              <input type="text" id="signup-name" placeholder="Full Name" required>
+            </div>
+            <div class="form-group">
+              <input type="email" id="signup-email" placeholder="Email" required>
+            </div>
+            <div class="form-group">
+              <input type="password" id="signup-password" placeholder="Password" required>
+            </div>
+            <button type="submit" class="cta-button">Sign Up</button>
+          </form>
+          <div id="signup-message" class="message"></div>
+          <div class="auth-links">
+            <a href="#" id="show-login">Already have an account? Login</a>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Forgot Password Section -->
+    <section id="forgot-password-section" class="auth-section" style="display: none;">
+      <div class="container">
+        <div class="auth-container">
+          <h2>Forgot Password</h2>
+          <p>Enter your email to receive a reset code</p>
+          <form id="forgot-password-form">
+            <div class="form-group">
+              <input type="email" id="forgot-password-email" placeholder="Email" required>
+            </div>
+            <button type="submit" class="cta-button">Send Reset Code</button>
+          </form>
+          <div id="forgot-password-message" class="message"></div>
+          <div class="auth-links">
+            <a href="#" id="back-to-login">Back to Login</a>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Reset Password Section -->
+    <section id="reset-password-section" class="auth-section" style="display: none;">
+      <div class="container">
+        <div class="auth-container">
+          <h2>Reset Password</h2>
+          <p>Enter the reset code and your new password</p>
+          <form id="reset-password-form">
+            <div class="form-group">
+              <input type="email" id="reset-password-email" placeholder="Email" readonly>
+            </div>
+            <div class="form-group">
+              <input type="text" id="reset-password-code" placeholder="Reset Code" required maxlength="6">
+            </div>
+            <div class="form-group">
+              <input type="password" id="reset-password-new-password" placeholder="New Password" required minlength="6">
+            </div>
+            <div class="form-group">
+              <input type="password" id="reset-password-confirm-password" placeholder="Confirm New Password" required minlength="6">
+            </div>
+            <button type="submit" class="cta-button">Reset Password</button>
+          </form>
+          <div id="reset-password-message" class="message"></div>
+          <div class="auth-links">
+            <a href="#" id="back-to-forgot-password">Back to Forgot Password</a>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Public Courses Section -->
+    <section id="public-courses-section" class="courses" style="display: none;">
+      <div class="container">
+        <h2 class="section-title">Available Courses</h2>
+        <div class="course-grid" id="public-course-container">
+          <!-- Courses will be dynamically loaded here -->
+        </div>
+        <div class="auth-cta">
+          <p>To enroll in courses, please <a href="#" id="login-from-courses">login</a> or <a href="#" id="signup-from-courses">sign up</a></p>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Courses Section -->
+    <section id="courses-section" class="courses" style="display: none;">
+      <div class="container">
+        <h2 class="section-title">Available Courses</h2>
+        <div class="course-grid" id="course-container">
+          <!-- Courses will be dynamically loaded here -->
+        </div>
+      </div>
+    </section>
+    
+    <!-- Student Dashboard Section -->
+    <section id="dashboard-section" class="dashboard" style="display: none;">
+      <div class="container">
+        <h2 class="section-title">Student Dashboard</h2>
+        <div class="dashboard-content">
+          <div class="welcome-card">
+            <h3>Welcome, <span id="student-name"></span>!</h3>
+            <p>Track your learning progress and access your enrolled courses.</p>
+          </div>
+          <div class="enrollments-container">
+            <h3>Your Enrollments</h3>
+            <div class="enrollment-grid" id="enrollment-container">
+              <!-- Enrollments will be dynamically loaded here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Course Content Section -->
+    <section id="course-content-section" class="course-content" style="display: none;">
+      <div class="container">
+        <div class="course-header">
+          <button id="back-to-dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</button>
+          <h2 id="course-title">Course Title</h2>
+          <p id="course-instructor">Instructor Name</p>
+        </div>
+        
+        <div class="course-modules" id="course-modules-container">
+          <!-- Course modules with videos will be loaded here -->
+        </div>
+      </div>
+    </section>
+    
+    <!-- Admin Dashboard Section -->
+    <section id="admin-section" class="admin-dashboard" style="display: none;">
+      <div class="container">
+        <h2 class="section-title">Admin Dashboard</h2>
+        <div class="admin-tabs">
+          <button class="tab-btn active" data-tab="courses">Courses</button>
+          <button class="tab-btn" data-tab="enrollments">Enrollments</button>
+          <button class="tab-btn" data-tab="users">Users</button>
+        </div>
+        
+        <!-- Courses Tab -->
+        <div class="tab-content active" id="courses-tab">
+          <div class="tab-header">
+            <h3>Course Management</h3>
+            <button id="add-course-btn" class="cta-button">Add New Course</button>
+          </div>
+          <div class="course-grid" id="admin-course-container">
+            <!-- Courses will be dynamically loaded here -->
+          </div>
+        </div>
+        
+        <!-- Enrollments Tab -->
+        <div class="tab-content" id="enrollments-tab">
+          <div class="tab-header">
+            <h3>Enrollment Management</h3>
+          </div>
+          <div class="enrollment-table-container">
+            <table class="enrollment-table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Course</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="enrollment-table-body">
+                <!-- Enrollments will be dynamically loaded here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Users Tab -->
+        <div class="tab-content" id="users-tab">
+          <div class="tab-header">
+            <h3>User Management</h3>
+          </div>
+          <div class="user-table-container">
+            <table class="user-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Enrollments</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="user-table-body">
+                <!-- Users will be dynamically loaded here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Admin Settings Section -->
+    <section id="admin-settings-section" class="admin-settings" style="display: none;">
+      <div class="container">
+        <div class="settings-container">
+          <h2 class="section-title">Admin Settings</h2>
+          <div class="settings-card">
+            <form id="admin-settings-form">
+              <div class="form-group">
+                <label for="admin-settings-username">Username</label>
+                <input type="text" id="admin-settings-username" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="admin-settings-email">Email</label>
+                <input type="email" id="admin-settings-email" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="admin-settings-current-password">Current Password</label>
+                <input type="password" id="admin-settings-current-password" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="admin-settings-new-password">New Password (optional)</label>
+                <input type="password" id="admin-settings-new-password">
+              </div>
+              
+              <div class="form-group">
+                <label for="admin-settings-confirm-password">Confirm New Password</label>
+                <input type="password" id="admin-settings-confirm-password">
+              </div>
+              
+              <button type="submit" class="cta-button">Update Settings</button>
+            </form>
+            
+            <div id="admin-settings-message" class="message"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Add/Edit Course Modal -->
+    <div id="course-modal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2 id="modal-title">Add New Course</h2>
+        <form id="course-form">
+          <input type="hidden" id="course-id">
+          <div class="form-group">
+            <label for="course-title">Title</label>
+            <input type="text" id="course-title" required>
+          </div>
+          <div class="form-group">
+            <label for="course-description">Description</label>
+            <textarea id="course-description" rows="4" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="course-instructor">Instructor</label>
+            <input type="text" id="course-instructor" required>
+          </div>
+          <div class="form-group">
+            <label for="course-price">Price ($)</label>
+            <input type="number" id="course-price" min="0" step="0.01" required>
+          </div>
+          <div class="form-group">
+            <label for="course-image-url">Course Image URL *</label>
+            <input type="text" id="course-image-url" class="form-control" placeholder="https://example.com/image.jpg" required>
+            <small class="form-text text-muted">Enter a valid URL for the course image (e.g., https://example.com/image.jpg)</small>
+          </div>
+          <div class="form-group">
+            <label>Modules</label>
+            <div id="modules-container">
+              <div class="module-input">
+                <input type="text" class="module-title" placeholder="Module Title" required>
+                <input type="text" class="module-duration" placeholder="Duration (e.g., 4 hours)" required>
+                <button type="button" class="remove-module"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>
+            <button type="button" id="add-module-btn">Add Module</button>
+          </div>
+          <button type="submit" class="cta-button">Save Course</button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- View Course Modal (for Admin) -->
+    <div id="view-course-modal" class="modal">
+      <div class="modal-content large-modal">
+        <span class="close">&times;</span>
+        <h2 id="view-course-title">Course Title</h2>
+        <div class="course-info">
+          <p><strong>Instructor:</strong> <span id="view-course-instructor"></span></p>
+          <p><strong>Price:</strong> $<span id="view-course-price"></span></p>
+          <p><strong>Description:</strong> <span id="view-course-description"></span></p>
+        </div>
+        
+        <div class="course-modules" id="view-course-modules-container">
+          <!-- Course modules with videos will be loaded here -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- User Details Modal -->
+    <div id="user-modal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>User Details</h2>
+        <div id="user-details">
+          <!-- User details will be dynamically loaded here -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- User Enrollments Modal -->
+    <div id="user-enrollments-modal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>User Enrollments</h2>
+        <div id="user-enrollments-container">
+          <!-- Enrollments will be dynamically loaded here -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- Enrollment Confirmation Modal -->
+    <div id="enrollment-confirmation-modal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Enrollment Confirmation</h2>
+        <div class="enrollment-info">
+          <p><strong>📞 Contact Number:</strong> +252 661142158</p>
+          <p><strong>💳 Payment Number:</strong> +252 0771351394</p>
+          <div class="warning-box">
+            <p>⚠️ <strong>Warning:</strong> Please do not confuse the Contact Number with the Payment Number.</p>
+            <ul>
+              <li>Use the Contact Number only for communication</li>
+              <li>Use the Payment Number only for sending your course fee</li>
+            </ul>
+          </div>
+          <p><strong>Instructions:</strong></p>
+          <ol>
+            <li>Send your payment to the Payment Number</li>
+            <li>After sending the payment, send your username via WhatsApp to the Contact Number</li>
+            <li>The admin will verify your payment and approve your enrollment</li>
+          </ol>
+        </div>
+        <div class="modal-actions">
+          <button id="cancel-enrollment" class="btn-secondary">Cancel</button>
+          <button id="confirm-enrollment-btn" class="cta-button">Confirm Enrollment</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- About Us Section -->
+    <section id="about-section" class="about-section" style="display: none;">
+      <div class="container">
+        <h2 class="section-title">About Allaama Online Academy</h2>
+        <div class="about-content">
+          <div class="about-mission">
+            <div class="about-icon">
+              <i class="fas fa-graduation-cap"></i>
+            </div>
+            <div class="about-text">
+              <h3>Our Mission</h3>
+              <p>To provide accessible, high-quality education that empowers individuals to achieve their full potential and contribute positively to society.</p>
+            </div>
+          </div>
+          
+          <div class="about-vision">
+            <div class="about-icon">
+              <i class="fas fa-eye"></i>
+            </div>
+            <div class="about-text">
+              <h3>Our Vision</h3>
+              <p>To be the leading online learning platform in Somalia, bridging educational gaps and creating opportunities for all learners regardless of their location or background.</p>
+            </div>
+          </div>
+          
+          <div class="about-values">
+            <div class="about-icon">
+              <i class="fas fa-heart"></i>
+            </div>
+            <div class="about-text">
+              <h3>Our Values</h3>
+              <ul>
+                <li><strong>Excellence:</strong> We deliver the highest quality education and learning experience</li>
+                <li><strong>Accessibility:</strong> Education should be available to everyone, everywhere</li>
+                <li><strong>Innovation:</strong> We continuously improve our platform and teaching methods</li>
+                <li><strong>Integrity:</strong> We operate with honesty and transparency in all we do</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="about-story">
+            <h3>Our Story</h3>
+            <p>Founded in 2023, Allaama Online Academy was born from the recognition that Somalia needs a modern, accessible online learning platform tailored to local needs. We started with a simple goal: to provide world-class education that respects Somali culture and addresses local job market demands.</p>
+            <p>Today, we offer a comprehensive range of courses designed by industry experts and educators who understand the unique challenges and opportunities in Somalia. Our platform combines cutting-edge technology with traditional learning values to create an educational experience that is both effective and inspiring.</p>
+          </div>
+          
+          <div class="about-team">
+            <h3>Our Team</h3>
+            <div class="team-grid">
+              <div class="team-member">
+                <div class="team-avatar">
+                  <i class="fas fa-user-tie"></i>
+                </div>
+                <h4>Founder & CEO</h4>
+                <p>Experienced educator with passion for digital learning transformation in Somalia</p>
+              </div>
+              <div class="team-member">
+                <div class="team-avatar">
+                  <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <h4>Academic Director</h4>
+                <p>Expert in curriculum development and educational quality assurance</p>
+              </div>
+              <div class="team-member">
+                <div class="team-avatar">
+                  <i class="fas fa-code"></i>
+                </div>
+                <h4>Technical Lead</h4>
+                <p>Specialist in educational technology and platform development</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Contact Section -->
+    <section id="contact-section" class="contact-section" style="display: none;">
+      <div class="container">
+        <h2 class="section-title">Contact Us</h2>
+        <div class="contact-content">
+          <div class="contact-info">
+            <div class="contact-card">
+              <div class="contact-icon">
+                <i class="fas fa-map-marker-alt"></i>
+              </div>
+              <div class="contact-details">
+                <h3>Visit Us</h3>
+                <p>Mogadishu, Somalia</p>
+                <p>Office Hours: Mon-Fri, 9AM-5PM</p>
+              </div>
+            </div>
+            
+            <div class="contact-card">
+              <div class="contact-icon">
+                <i class="fas fa-phone"></i>
+              </div>
+              <div class="contact-details">
+                <h3>Call Us</h3>
+                <p>+252 661142158</p>
+                <p>+252 0771351394</p>
+              </div>
+            </div>
+            
+            <div class="contact-card">
+              <div class="contact-icon">
+                <i class="fas fa-envelope"></i>
+              </div>
+              <div class="contact-details">
+                <h3>Email Us</h3>
+                <p>info@allaama.com</p>
+                <p>support@allaama.com</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="contact-form-container">
+            <div class="contact-form">
+              <h3>Send us a Message</h3>
+              <form id="contact-form" action="https://formspree.io/f/xblaawlv" method="POST">
+                <!-- These hidden fields help Formspree process the form better -->
+                <input type="hidden" name="_subject" value="New contact form submission from Allaama Academy">
+                
+                <div class="form-group">
+                  <label for="contact-name">Your Name</label>
+                  <input type="text" id="contact-name" name="name" placeholder="Enter your full name" required>
+                </div>
+                
+                <div class="form-group">
+                  <label for="contact-email">Your Email</label>
+                  <input type="email" id="contact-email" name="email" placeholder="Enter your email address" required>
+                </div>
+                
+                <div class="form-group">
+                  <label for="contact-subject">Subject</label>
+                  <input type="text" id="contact-subject" name="subject" placeholder="Enter message subject" required>
+                </div>
+                
+                <div class="form-group">
+                  <label for="contact-message">Message</label>
+                  <textarea id="contact-message" name="message" rows="5" placeholder="Type your message here..." required></textarea>
+                </div>
+                
+                <button type="submit" class="cta-button">Send Message</button>
+              </form>
+              <div id="contact-message-response" class="message"></div>
+            </div>
+            
+            <div class="contact-map">
+              <h3>Find Us</h3>
+              <div class="map-placeholder">
+                <i class="fas fa-map-marked-alt"></i>
+                <p>Interactive Map Coming Soon</p>
+                <p>Mogadishu, Somalia</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="contact-faq">
+            <h3>Frequently Asked Questions</h3>
+            <div class="faq-list">
+              <div class="faq-item">
+                <h4>How do I enroll in courses?</h4>
+                <p>Simply create an account, browse our courses, and click "Enroll Now" on any course that interests you. Follow the payment instructions to complete your enrollment.</p>
+              </div>
+              
+              <div class="faq-item">
+                <h4>What payment methods do you accept?</h4>
+                <p>We accept mobile money payments and bank transfers. Detailed payment instructions are provided during the enrollment process.</p>
+              </div>
+              
+              <div class="faq-item">
+                <h4>Can I get a certificate after completing a course?</h4>
+                <p>Yes, upon successful completion of a course, you will receive a certificate that you can download and share with employers.</p>
+              </div>
+              
+              <div class="faq-item">
+                <h4>Do you offer discounts for multiple courses?</h4>
+                <p>Yes, we regularly offer promotions and discounts. Subscribe to our newsletter to stay informed about special offers.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2023 Allaama Academy. All rights reserved.</p>
+      <div class="social-links">
+        <a href="#"><i class="fab fa-facebook"></i></a>
+        <a href="#"><i class="fab fa-twitter"></i></a>
+        <a href="#"><i class="fab fa-instagram"></i></a>
+        <a href="#"><i class="fab fa-linkedin"></i></a>
+      </div>
+    </div>
+  </footer>
+  
+  <script src="app.js"></script>
+  <script>
+    // Mobile menu toggle functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+      const nav = document.querySelector('nav');
+      
+      mobileMenuToggle.addEventListener('click', function() {
+        nav.classList.toggle('active');
+        mobileMenuToggle.classList.toggle('active');
+      });
+      
+      // Close menu when clicking on a link
+      const navLinks = document.querySelectorAll('nav ul li a');
+      navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+          nav.classList.remove('active');
+          mobileMenuToggle.classList.remove('active');
+        });
+      });
+    });
+  </script>
+</body>
+</html>
