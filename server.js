@@ -48,7 +48,10 @@ const PORT = process.env.PORT || 5000;
 // // Add this pre-flight OPTIONS handler
 // app.options('*', cors(corsOptions));
 // Local whitelist
-const whitelist = ['https://allaama-2.onrender.com'];
+const whitelist = [
+  'https://allaama-2.onrender.com',   // server-kaaga
+  'https://allaama.vercel.app'        // frontend-kaaga Vercel
+];
 
 const corsOptions = {
   origin: function(origin, callback) {
@@ -67,6 +70,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+
 
 app.use(express.json());
 app.use(express.static(__dirname));
