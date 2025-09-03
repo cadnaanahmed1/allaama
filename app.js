@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Define the base URL for the API
-  const API_BASE_URL = 'http://localhost:5000';
+  const API_BASE_URL = 'https://allaama-2.onrender.com';
   
   // DOM Elements
 const sections = {
