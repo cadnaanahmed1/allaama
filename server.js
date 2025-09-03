@@ -20,16 +20,39 @@ const PORT = process.env.PORT || 5000;
 // Enhanced CORS configuration
 // Add this after your middleware setup
 // Configure CORS to allow multiple origins
-const whitelist = [
-  'http://localhost:5500',
-  'http://127.0.0.1:5500',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000'
-];
+// const whitelist = [
+//   'http://localhost:5500',
+//   'http://127.0.0.1:5500',
+//   'http://localhost:3000',
+//   'http://127.0.0.1:3000'
+// ];
+
+// const corsOptions = {
+//   origin: function (origin, callback) {
+//     if (whitelist.indexOf(origin) !== -1 || !origin) {
+//       return callback(null, true);
+//     } else {
+//       return callback(new Error('Not allowed by CORS'));
+//     }
+//   },
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+//   exposedHeaders: ['Content-Length', 'X-Requested-With'],
+//   optionsSuccessStatus: 200,
+//   maxAge: 86400 // 24 hours
+// };
+
+// app.use(cors(corsOptions));
+
+// // Add this pre-flight OPTIONS handler
+// app.options('*', cors(corsOptions));
+// Local whitelist
+const whitelist = ['https://allaama-2.onrender.com'];
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    if (whitelist.indexOf(origin) !== -1 || !origin) {
+  origin: function(origin, callback) {
+    if (!origin || whitelist.indexOf(origin) !== -1) {
       return callback(null, true);
     } else {
       return callback(new Error('Not allowed by CORS'));
@@ -39,18 +62,14 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['Content-Length', 'X-Requested-With'],
-  optionsSuccessStatus: 200,
-  maxAge: 86400 // 24 hours
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
-
-// Add this pre-flight OPTIONS handler
 app.options('*', cors(corsOptions));
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
+app.use(express.static(__dirname));
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
