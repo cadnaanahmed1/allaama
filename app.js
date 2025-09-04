@@ -3910,6 +3910,208 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+
+
+  // Add this function to handle direct course access
+function handleDirectCourseAccess() {
+  // Check if we're on a course page
+  const path = window.location.pathname;
+  const courseMatch = path.match(/^\/course\/(.+)$/);
+  
+  if (courseMatch) {
+    const courseId = courseMatch[1];
+    
+    // Check if user is logged in
+    if (authToken && currentUser) {
+      // User is logged in, check if they have access to this course
+      fetch(`${API_BASE_URL}/api/course/${courseId}`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.hasAccess) {
+          // User has access, show course content
+          showSection('courseContent');
+          viewCourseContent(courseId);
+        } else {
+          // User doesn't have access, show course details with purchase option
+          showCourseDetails(courseId);
+        }
+      })
+      .catch(error => {
+        console.error('Error checking course access:', error);
+        showSection('home');
+        createNotification('Failed to load course', 'error');
+      });
+    } else {
+      // User is not logged in, show course details
+      showCourseDetails(courseId);
+    }
+  }
+}
+
+// Add this function to show course details for non-enrolled users
+function showCourseDetails(courseId) {
+  // Fetch course details
+  fetch(`${API_BASE_URL}/api/course/${courseId}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.course) {
+        // Create a temporary section to show course details
+        const courseDetailsSection = document.createElement('section');
+        courseDetailsSection.id = 'course-details-section';
+        courseDetailsSection.className = 'course-details';
+        courseDetailsSection.style.display = 'block';
+        
+        courseDetailsSection.innerHTML = `
+          <div class="container">
+            <div class="course-header">
+              <button id="back-to-home" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Home</button>
+              <h2>${data.course.title}</h2>
+              <p>Instructor: ${data.course.instructor}</p>
+            </div>
+            
+            <div class="course-content">
+              <div class="course-image">
+                ${data.course.imageUrl ? 
+                  `<img src="${data.course.imageUrl}" alt="${data.course.title}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                   <div class="image-error" style="display: none;">
+                     <i class="fas fa-exclamation-triangle"></i>
+                     <p>Image not available</p>
+                   </div>` : 
+                  `<div class="image-error">
+                     <i class="fas fa-exclamation-triangle"></i>
+                     <p>No image provided</p>
+                   </div>`
+                }
+              </div>
+              
+              <div class="course-info">
+                <div class="course-description">
+                  <h3>Course Description</h3>
+                  <p>${data.course.description}</p>
+                </div>
+                
+                <div class="course-meta">
+                  <div class="course-price">
+                    <i class="fas fa-dollar-sign"></i> ${data.course.price}
+                  </div>
+                  ${data.course.panel ? `<div class="course-panel">
+                    <i class="fas fa-folder"></i> ${data.course.panel.name}
+                  </div>` : ''}
+                </div>
+                
+                ${data.hasAccess ? 
+                  `<button class="view-course-btn btn btn-primary" data-course-id="${data.course._id}">
+                    <i class="fas fa-play-circle"></i> View Course
+                  </button>` :
+                  `<div class="access-message">
+                    <p>You need to purchase this course to access the content.</p>
+                    ${!currentUser ? 
+                      `<p>Please <a href="#" id="login-to-access">login</a> or <a href="#" id="signup-to-access">sign up</a> to purchase this course.</p>` :
+                      `<button class="enroll-btn btn btn-primary" data-course-id="${data.course._id}">
+                        <i class="fas fa-user-plus"></i> Enroll Now
+                      </button>`
+                    }
+                  </div>`
+                }
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Add to main content
+        const main = document.querySelector('main');
+        main.appendChild(courseDetailsSection);
+        
+        // Show the section
+        showSection('course-details-section');
+        
+        // Add event listeners
+        const backToHomeBtn = document.getElementById('back-to-home');
+        if (backToHomeBtn) {
+          backToHomeBtn.addEventListener('click', () => {
+            courseDetailsSection.remove();
+            showSection('home');
+          });
+        }
+        
+        const loginToAccessBtn = document.getElementById('login-to-access');
+        if (loginToAccessBtn) {
+          loginToAccessBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            sessionStorage.setItem('enrollAfterLogin', courseId);
+            showSection('login');
+          });
+        }
+        
+        const signupToAccessBtn = document.getElementById('signup-to-access');
+        if (signupToAccessBtn) {
+          signupToAccessBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            sessionStorage.setItem('enrollAfterLogin', courseId);
+            showSection('signup');
+          });
+        }
+        
+        const enrollBtn = courseDetailsSection.querySelector('.enroll-btn');
+        if (enrollBtn) {
+          enrollBtn.addEventListener('click', () => {
+            showEnrollmentConfirmation(courseId);
+          });
+        }
+        
+        const viewCourseBtn = courseDetailsSection.querySelector('.view-course-btn');
+        if (viewCourseBtn) {
+          viewCourseBtn.addEventListener('click', () => {
+            courseDetailsSection.remove();
+            viewCourseContent(courseId);
+          });
+        }
+      } else {
+        createNotification('Course not found', 'error');
+        showSection('home');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading course details:', error);
+      createNotification('Failed to load course', 'error');
+      showSection('home');
+    });
+}
+
+// Update the init function to check for direct course access on page load
+function init() {
+  // Check if user is logged in
+  if (authToken) {
+    verifyTokenWithServer();
+  } else {
+    // Show home section immediately without waiting for animations
+    showSection('home');
+    updateUI();
+    loadPublicCourses(); // Load public courses for non-logged in users
+  }
+  
+  // Check for direct course access
+  handleDirectCourseAccess();
+  
+  // Event listeners
+  setupEventListeners();
+  
+  // Add beautiful entrance animations
+  addEntranceAnimations();
+  
+  // Ensure home section is visible after a short delay
+  setTimeout(() => {
+    if (!authToken && sections.home) {
+      sections.home.style.opacity = '1';
+      sections.home.style.transform = 'translateY(0)';
+    }
+  }, 100);
+}
+
   // -------------------------------------------------------------------------
   // Mobile menu toggle functionality
   // Initialize the app
