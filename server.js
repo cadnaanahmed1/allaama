@@ -732,7 +732,9 @@ app.get('/api/course/:id', async (req, res) => {
     }
     
     // Check if user is authenticated
-    const token = req.headers.authorization?.split(' ')[1];
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+    
     if (token) {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
