@@ -12,11 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
     publicCourses: document.getElementById('public-courses-section'),
     courses: document.getElementById('courses-section'),
     dashboard: document.getElementById('dashboard-section'),
-    studentSettings: document.getElementById('student-settings-section'),
     courseContent: document.getElementById('course-content-section'),
-    sharedCourse: document.getElementById('shared-course-section'),
     admin: document.getElementById('admin-section'),
     adminSettings: document.getElementById('admin-settings-section'),
+    studentSettings: document.getElementById('student-settings-section'),
     about: document.getElementById('about-section'),
     contact: document.getElementById('contact-section')
   };
@@ -25,9 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     home: document.getElementById('home-link'),
     courses: document.getElementById('courses-link'),
     dashboard: document.getElementById('dashboard-link'),
-    studentSettings: document.getElementById('student-settings-link'),
     admin: document.getElementById('admin-link'),
     adminSettings: document.getElementById('admin-settings-link'),
+    studentSettings: document.getElementById('student-settings-link'),
     login: document.getElementById('login-link'),
     signup: document.getElementById('signup-link'),
     logout: document.getElementById('logout-link'),
@@ -64,12 +63,10 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   
   const exploreCourses = document.getElementById('explore-courses');
-  const publicCoursePanelsContainer = document.getElementById('course-panels-container');
-  const coursePanelsContainer = document.getElementById('course-panels-container-logged');
   const publicCourseContainer = document.getElementById('public-course-container');
   const courseContainer = document.getElementById('course-container');
   const adminCourseContainer = document.getElementById('admin-course-container');
-  const adminCategoryContainer = document.getElementById('admin-category-container');
+  const adminPanelContainer = document.getElementById('admin-panel-container');
   const enrollmentContainer = document.getElementById('enrollment-container');
   const enrollmentTableBody = document.getElementById('enrollment-table-body');
   const userTableBody = document.getElementById('user-table-body');
@@ -82,38 +79,35 @@ document.addEventListener('DOMContentLoaded', () => {
   const courseModulesContainer = document.getElementById('course-modules-container');
   const backToDashboardBtn = document.getElementById('back-to-dashboard');
   
-  // Shared Course Elements
-  const sharedCourseSection = document.getElementById('shared-course-section');
-  const sharedCourseTitle = document.getElementById('shared-course-title');
-  const sharedCourseInstructor = document.getElementById('shared-course-instructor');
-  const sharedCourseModulesContainer = document.getElementById('shared-course-modules-container');
-  const sharedCourseAccessMessage = document.getElementById('shared-course-access-message');
-  const backToHomeBtn = document.getElementById('back-to-home');
-  
-  // Search Elements
-  const courseSearchInput = document.getElementById('course-search');
-  const courseSearchLoggedInput = document.getElementById('course-search-logged');
-  const searchButton = document.getElementById('search-button');
-  const searchButtonLogged = document.getElementById('search-button-logged');
-  
   // Modals
   const courseModal = document.getElementById('course-modal');
-  const categoryModal = document.getElementById('category-modal');
+  const panelModal = document.getElementById('panel-modal');
   const viewCourseModal = document.getElementById('view-course-modal');
   const userModal = document.getElementById('user-modal');
   const userEnrollmentsModal = document.getElementById('user-enrollments-modal');
   const enrollmentConfirmationModal = document.getElementById('enrollment-confirmation-modal');
+  const shareCourseModal = document.getElementById('share-course-modal');
   const courseForm = document.getElementById('course-form');
-  const categoryForm = document.getElementById('category-form');
+  const panelForm = document.getElementById('panel-form');
   const addCourseBtn = document.getElementById('add-course-btn');
-  const addCategoryBtn = document.getElementById('add-category-btn');
+  const addPanelBtn = document.getElementById('add-panel-btn');
   const addModuleBtn = document.getElementById('add-module-btn');
   const modulesContainer = document.getElementById('modules-container');
   const modalTitle = document.getElementById('modal-title');
-  const categoryModalTitle = document.getElementById('category-modal-title');
   const courseIdInput = document.getElementById('course-id');
-  const categoryIdInput = document.getElementById('category-id');
-  const courseCategorySelect = document.getElementById('course-category');
+  const panelModalTitle = document.getElementById('panel-modal-title');
+  const panelIdInput = document.getElementById('panel-id');
+  
+  // Search elements
+  const publicCourseSearchInput = document.getElementById('public-course-search-input');
+  const publicCourseSearchBtn = document.getElementById('public-course-search-btn');
+  const courseSearchInput = document.getElementById('course-search-input');
+  const courseSearchBtn = document.getElementById('course-search-btn');
+  
+  // Share elements
+  const shareLinkInput = document.getElementById('share-link');
+  const copyLinkBtn = document.getElementById('copy-link-btn');
+  const closeShareModalBtn = document.getElementById('close-share-modal');
   
   // Tabs
   const tabBtns = document.querySelectorAll('.tab-btn');
@@ -122,8 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // State
   let currentUser = null;
   let authToken = localStorage.getItem('authToken');
-  let allCourses = [];
-  let allCategories = [];
   
   // Helper function to validate and fix image URLs
   function validateImageUrl(url) {
@@ -309,20 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
         sections.home.style.transform = 'translateY(0)';
       }
     }, 100);
-    
-    // Check for shared course link in URL
-    checkForSharedCourse();
-  }
-  
-  // Check for shared course link in URL
-  function checkForSharedCourse() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const courseId = urlParams.get('course');
-    
-    if (courseId) {
-      // Load shared course
-      loadSharedCourse(courseId);
-    }
   }
   
   // Add entrance animations
@@ -386,12 +364,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load public courses (for non-logged in users)
   function loadPublicCourses() {
     // Create beautiful loading spinner
-    const spinner = createLoadingSpinner(publicCoursePanelsContainer);
+    const spinner = createLoadingSpinner(publicCourseContainer);
     
-    // First load categories
-    fetch(`${API_BASE_URL}/api/public/categories`, {
+    fetch(`${API_BASE_URL}/api/public/courses`, {
       method: 'GET',
-      credentials: 'include',
+      credentials: 'include', // This is important
       headers: {
         'Content-Type': 'application/json'
       }
@@ -402,123 +379,99 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       return response.json();
     })
-    .then(categories => {
-      allCategories = categories;
-      
-      // Then load courses
-      return fetch(`${API_BASE_URL}/api/public/courses`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(courses => {
-      console.log('Public courses data:', courses);
+    .then(data => {
+      console.log('Public courses data:', data);
       
       // Check if the response is an array
-      if (!Array.isArray(courses)) {
+      if (!Array.isArray(data)) {
         throw new Error('Expected an array of courses');
       }
       
       // Remove spinner
       spinner.remove();
       
-      allCourses = courses;
+      publicCourseContainer.innerHTML = '';
       
-      // Group courses by category
-      const coursesByCategory = {};
-      
-      // Initialize with all categories
-      allCategories.forEach(category => {
-        coursesByCategory[category._id] = {
-          category: category,
-          courses: []
-        };
-      });
-      
-      // Add courses to their categories
-      courses.forEach(course => {
-        if (course.category && coursesByCategory[course.category]) {
-          coursesByCategory[course.category].courses.push(course);
-        } else {
-          // If course has no category or category doesn't exist, add to "Uncategorized"
-          if (!coursesByCategory['uncategorized']) {
-            coursesByCategory['uncategorized'] = {
-              category: {
-                _id: 'uncategorized',
-                name: 'Uncategorized',
-                description: 'Courses without a category'
-              },
-              courses: []
-            };
-          }
-          coursesByCategory['uncategorized'].courses.push(course);
-        }
-      });
-      
-      // Create course panels
-      publicCoursePanelsContainer.innerHTML = '';
-      
-      Object.values(coursesByCategory).forEach(({ category, courses }, index) => {
-        if (courses.length === 0) return; // Skip empty categories
-        
-        const panel = document.createElement('div');
-        panel.className = 'course-panel';
-        panel.style.opacity = '0';
-        panel.style.transform = 'translateY(20px)';
-        
-        panel.innerHTML = `
-          <div class="panel-header" data-category-id="${category._id}">
-            <h3>${category.name}</h3>
-            <span class="panel-toggle"><i class="fas fa-chevron-up"></i></span>
+      if (data.length === 0) {
+        // Show a message when no courses are available
+        publicCourseContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <i class="fas fa-book-open"></i>
+            </div>
+            <h3>No Courses Available</h3>
+            <p>There are currently no courses available. Please check back later.</p>
           </div>
-          <div class="panel-content">
-            <div class="course-grid" id="public-courses-${category._id}">
-              <!-- Courses will be dynamically loaded here -->
+        `;
+        return;
+      }
+      
+      // Create beautiful course cards
+      data.forEach((course, index) => {
+        console.log('Processing course:', course);
+        console.log('Course imageUrl:', course.imageUrl);
+        
+        const courseCard = document.createElement('div');
+        courseCard.className = 'course-card beautiful-card';
+        courseCard.style.opacity = '0';
+        courseCard.style.transform = 'translateY(20px)';
+        
+        // Validate and fix image URL
+        const imageUrl = validateImageUrl(course.imageUrl);
+        console.log('Using imageUrl:', imageUrl);
+        
+        courseCard.innerHTML = `
+          <div class="card-image">
+            ${imageUrl ? 
+              `<img src="${imageUrl}" alt="${course.title}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                 <div class="image-error" style="display: none;">
+                   <i class="fas fa-exclamation-triangle"></i>
+                   <p>Image not available</p>
+                 </div>` : 
+              `<div class="image-error">
+                 <i class="fas fa-exclamation-triangle"></i>
+                 <p>No image provided</p>
+               </div>`
+            }
+          </div>
+          <div class="card-content">
+            <h3>${course.title}</h3>
+            <p>${course.description}</p>
+            <div class="course-meta">
+              <div class="course-instructor">
+                <i class="fas fa-user"></i> ${course.instructor}
+              </div>
+              <div class="course-price">
+                <i class="fas fa-dollar-sign"></i> ${course.price}
+              </div>
+              ${course.panel ? `<div class="course-panel">
+                <i class="fas fa-folder"></i> ${course.panel.name}
+              </div>` : ''}
+            </div>
+            <div class="course-actions">
+              ${currentUser && currentUser.role === 'student' ? 
+                `<button class="enroll-btn btn btn-primary" data-course-id="${course._id}">
+                  <i class="fas fa-user-plus"></i> Enroll Now
+                </button>` : 
+                !currentUser ? 
+                `<button class="login-to-enroll-btn btn btn-primary" data-course-id="${course._id}">
+                  <i class="fas fa-sign-in-alt"></i> Login to Enroll
+                </button>` : ''}
+              <button class="share-course-btn btn btn-outline" data-course-id="${course._id}">
+                <i class="fas fa-share-alt"></i> Share
+              </button>
             </div>
           </div>
         `;
         
-        publicCoursePanelsContainer.appendChild(panel);
+        publicCourseContainer.appendChild(courseCard);
         
-        // Add courses to the panel
-        const courseGrid = panel.querySelector('.course-grid');
-        courses.forEach((course, courseIndex) => {
-          const courseCard = createCourseCard(course, false);
-          courseGrid.appendChild(courseCard);
-          
-          // Animate card in with staggered delay
-          setTimeout(() => {
-            courseCard.style.opacity = '1';
-            courseCard.style.transform = 'translateY(0)';
-            courseCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-          }, courseIndex * 100);
-        });
-        
-        // Animate panel in with staggered delay
+        // Animate card in with staggered delay
         setTimeout(() => {
-          panel.style.opacity = '1';
-          panel.style.transform = 'translateY(0)';
-          panel.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          courseCard.style.opacity = '1';
+          courseCard.style.transform = 'translateY(0)';
+          courseCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
         }, index * 100);
-        
-        // Add event listener to panel header for collapsing/expanding
-        const panelHeader = panel.querySelector('.panel-header');
-        panelHeader.addEventListener('click', () => {
-          const panelContent = panel.querySelector('.panel-content');
-          const panelToggle = panel.querySelector('.panel-toggle');
-          
-          panelHeader.classList.toggle('collapsed');
-          panelContent.classList.toggle('collapsed');
-        });
       });
       
       // Add event listeners to enroll buttons
@@ -542,13 +495,21 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         });
       }
+      
+      // Add event listeners to share buttons
+      document.querySelectorAll('.share-course-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const courseId = e.target.getAttribute('data-course-id');
+          shareCourse(courseId);
+        });
+      });
     })
     .catch(error => {
       console.error('Error loading public courses:', error);
       
       // Remove spinner and show error
       spinner.remove();
-      publicCoursePanelsContainer.innerHTML = `
+      publicCourseContainer.innerHTML = `
         <div class="error-message">
           <i class="fas fa-exclamation-triangle"></i>
           <p>Failed to load courses. Please check your internet connection and try again later.</p>
@@ -562,507 +523,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  // Load courses for logged-in users
-  function loadCourses() {
-    console.log('Loading courses...');
-    console.log('Current user:', currentUser);
-    console.log('Auth token:', authToken ? 'Present' : 'Missing');
-    
-    // Create beautiful loading spinner
-    const spinner = createLoadingSpinner(coursePanelsContainer);
-    
-    // Check if user is authenticated
-    if (!authToken || !currentUser) {
-      // Redirect to login if not authenticated
-      showSection('login');
-      return;
-    }
-    
-    // First load categories
-    fetch(`${API_BASE_URL}/api/public/categories`, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(categories => {
-      allCategories = categories;
-      
-      // Then load courses
-      return fetch(`${API_BASE_URL}/api/student/courses`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
-      });
-    })
-    .then(response => {
-      console.log('Response status:', response.status);
-      
-      if (response.status === 403) {
-        // If forbidden, the token might be expired or invalid
-        logout();
-        showSection('login');
-        throw new Error('Session expired. Please login again.');
-      }
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      return response.json();
-    })
-    .then(courses => {
-      console.log('Response data:', courses);
-      
-      // Check if the response is an array
-      if (!Array.isArray(courses)) {
-        throw new Error('Expected an array of courses');
-      }
-      
-      // Remove spinner
-      spinner.remove();
-      
-      allCourses = courses;
-      
-      // Group courses by category
-      const coursesByCategory = {};
-      
-      // Initialize with all categories
-      allCategories.forEach(category => {
-        coursesByCategory[category._id] = {
-          category: category,
-          courses: []
-        };
-      });
-      
-      // Add courses to their categories
-      courses.forEach(course => {
-        if (course.category && coursesByCategory[course.category]) {
-          coursesByCategory[course.category].courses.push(course);
-        } else {
-          // If course has no category or category doesn't exist, add to "Uncategorized"
-          if (!coursesByCategory['uncategorized']) {
-            coursesByCategory['uncategorized'] = {
-              category: {
-                _id: 'uncategorized',
-                name: 'Uncategorized',
-                description: 'Courses without a category'
-              },
-              courses: []
-            };
-          }
-          coursesByCategory['uncategorized'].courses.push(course);
-        }
-      });
-      
-      // Create course panels
-      coursePanelsContainer.innerHTML = '';
-      
-      Object.values(coursesByCategory).forEach(({ category, courses }, index) => {
-        if (courses.length === 0) return; // Skip empty categories
-        
-        const panel = document.createElement('div');
-        panel.className = 'course-panel';
-        panel.style.opacity = '0';
-        panel.style.transform = 'translateY(20px)';
-        
-        panel.innerHTML = `
-          <div class="panel-header" data-category-id="${category._id}">
-            <h3>${category.name}</h3>
-            <span class="panel-toggle"><i class="fas fa-chevron-up"></i></span>
-          </div>
-          <div class="panel-content">
-            <div class="course-grid" id="courses-${category._id}">
-              <!-- Courses will be dynamically loaded here -->
-            </div>
-          </div>
-        `;
-        
-        coursePanelsContainer.appendChild(panel);
-        
-        // Add courses to the panel
-        const courseGrid = panel.querySelector('.course-grid');
-        courses.forEach((course, courseIndex) => {
-          const courseCard = createCourseCard(course, true);
-          courseGrid.appendChild(courseCard);
-          
-          // Animate card in with staggered delay
-          setTimeout(() => {
-            courseCard.style.opacity = '1';
-            courseCard.style.transform = 'translateY(0)';
-            courseCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-          }, courseIndex * 100);
-        });
-        
-        // Animate panel in with staggered delay
-        setTimeout(() => {
-          panel.style.opacity = '1';
-          panel.style.transform = 'translateY(0)';
-          panel.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-        }, index * 100);
-        
-        // Add event listener to panel header for collapsing/expanding
-        const panelHeader = panel.querySelector('.panel-header');
-        panelHeader.addEventListener('click', () => {
-          const panelContent = panel.querySelector('.panel-content');
-          const panelToggle = panel.querySelector('.panel-toggle');
-          
-          panelHeader.classList.toggle('collapsed');
-          panelContent.classList.toggle('collapsed');
-        });
-      });
-      
-      // Add event listeners to enroll buttons
-      if (currentUser && currentUser.role === 'student') {
-        document.querySelectorAll('.enroll-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const courseId = e.target.getAttribute('data-course-id');
-            showEnrollmentConfirmation(courseId);
-          });
-        });
-      }
-    })
-    .catch(error => {
-      console.error('Error loading courses:', error);
-      
-      // Remove spinner and show error
-      spinner.remove();
-      coursePanelsContainer.innerHTML = `
-        <div class="error-message">
-          <i class="fas fa-exclamation-triangle"></i>
-          <p>Failed to load courses: ${error.message}</p>
-        </div>
-      `;
-      
-      // Show error notification
-      createNotification('Failed to load courses', 'error');
-    });
-  }
-  
-  // Create course card element
-  function createCourseCard(course, isLoggedIn) {
-    const courseCard = document.createElement('div');
-    courseCard.className = 'course-card beautiful-card';
-    courseCard.style.opacity = '0';
-    courseCard.style.transform = 'translateY(20px)';
-    
-    // Validate and fix image URL
-    const imageUrl = validateImageUrl(course.imageUrl);
-    console.log('Using imageUrl:', imageUrl);
-    
-    courseCard.innerHTML = `
-      <div class="card-image">
-        ${imageUrl ? 
-          `<img src="${imageUrl}" alt="${course.title}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-           <div class="image-error" style="display: none;">
-             <i class="fas fa-exclamation-triangle"></i>
-             <p>Image not available</p>
-           </div>` : 
-          `<div class="image-error">
-             <i class="fas fa-exclamation-triangle"></i>
-             <p>No image provided</p>
-           </div>`
-        }
-      </div>
-      <div class="card-content">
-        <h3>${course.title}</h3>
-        <p>${course.description}</p>
-        <div class="course-meta">
-          <div class="course-instructor">
-            <i class="fas fa-user"></i> ${course.instructor}
-          </div>
-          <div class="course-price">
-            <i class="fas fa-dollar-sign"></i> ${course.price}
-          </div>
-        </div>
-        <div class="course-modules">
-          <h4>Course Modules:</h4>
-          <ul>
-            ${course.modules && Array.isArray(course.modules) ? course.modules.map(module => `
-              <li>
-                <i class="fas fa-book"></i> ${module.title}
-                <span class="module-duration">${module.duration}</span>
-              </li>
-            `).join('') : '<li>No modules available</li>'}
-          </ul>
-        </div>
-        <div class="course-actions">
-          <button class="share-btn btn btn-secondary" data-course-id="${course._id}" data-course-title="${course.title}">
-            <i class="fas fa-share-alt"></i> Share
-          </button>
-          ${isLoggedIn && currentUser && currentUser.role === 'student' ? 
-            `<button class="enroll-btn btn btn-primary" data-course-id="${course._id}">
-              <i class="fas fa-user-plus"></i> Enroll Now
-            </button>` : 
-            !isLoggedIn ? 
-            `<button class="login-to-enroll-btn btn btn-primary" data-course-id="${course._id}">
-              <i class="fas fa-sign-in-alt"></i> Login to Enroll
-            </button>` : ''}
-        </div>
-      </div>
-    `;
-    
-    // Add event listener to share button
-    const shareBtn = courseCard.querySelector('.share-btn');
-    shareBtn.addEventListener('click', (e) => {
-      const courseId = e.currentTarget.getAttribute('data-course-id');
-      const courseTitle = e.currentTarget.getAttribute('data-course-title');
-      shareCourse(courseId, courseTitle);
-    });
-    
-    return courseCard;
-  }
-  
-  // Share course functionality
-  function shareCourse(courseId, courseTitle) {
-    // Create shareable URL
-    const shareableUrl = `${window.location.origin}${window.location.pathname}?course=${courseId}`;
-    
-    // Create share modal
-    const shareModal = document.createElement('div');
-    shareModal.className = 'share-modal modal';
-    shareModal.innerHTML = `
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <h3>Share Course</h3>
-        <p>Share this course with others:</p>
-        <div class="share-link-container">
-          <input type="text" id="share-link-input" value="${shareableUrl}" readonly>
-          <button id="copy-link-btn" class="btn btn-primary">Copy Link</button>
-        </div>
-        <div class="share-options">
-          <p>Or share via:</p>
-          <div class="share-buttons">
-            <button class="share-facebook-btn"><i class="fab fa-facebook-f"></i></button>
-            <button class="share-twitter-btn"><i class="fab fa-twitter"></i></button>
-            <button class="share-whatsapp-btn"><i class="fab fa-whatsapp"></i></button>
-            <button class="share-email-btn"><i class="fas fa-envelope"></i></button>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(shareModal);
-    
-    // Show modal with animation
-    shareModal.style.display = 'block';
-    shareModal.style.opacity = '0';
-    shareModal.style.transform = 'scale(0.9)';
-    
-    // Trigger reflow
-    shareModal.offsetHeight;
-    
-    // Animate in
-    shareModal.style.opacity = '1';
-    shareModal.style.transform = 'scale(1)';
-    shareModal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-    
-    // Add event listeners
-    const closeBtn = shareModal.querySelector('.close');
-    const copyBtn = shareModal.querySelector('#copy-link-btn');
-    const shareLinkInput = shareModal.querySelector('#share-link-input');
-    const facebookBtn = shareModal.querySelector('.share-facebook-btn');
-    const twitterBtn = shareModal.querySelector('.share-twitter-btn');
-    const whatsappBtn = shareModal.querySelector('.share-whatsapp-btn');
-    const emailBtn = shareModal.querySelector('.share-email-btn');
-    
-    const closeModal = () => {
-      shareModal.style.opacity = '0';
-      shareModal.style.transform = 'scale(0.9)';
-      shareModal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-      
-      setTimeout(() => {
-        shareModal.remove();
-      }, 300);
-    };
-    
-    closeBtn.addEventListener('click', closeModal);
-    
-    copyBtn.addEventListener('click', () => {
-      shareLinkInput.select();
-      document.execCommand('copy');
-      createNotification('Link copied to clipboard!', 'success');
-    });
-    
-    facebookBtn.addEventListener('click', () => {
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareableUrl)}`, '_blank');
-    });
-    
-    twitterBtn.addEventListener('click', () => {
-      window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareableUrl)}&text=${encodeURIComponent(`Check out this course: ${courseTitle}`)}`, '_blank');
-    });
-    
-    whatsappBtn.addEventListener('click', () => {
-      window.open(`https://wa.me/?text=${encodeURIComponent(`Check out this course: ${courseTitle} ${shareableUrl}`)}`, '_blank');
-    });
-    
-    emailBtn.addEventListener('click', () => {
-      window.location.href = `mailto:?subject=${encodeURIComponent(`Check out this course: ${courseTitle}`)}&body=${encodeURIComponent(`I thought you might be interested in this course: ${courseTitle}\n\n${shareableUrl}`)}`;
-    });
-  }
-  
-  // Load shared course
-  function loadSharedCourse(courseId) {
-    // Create beautiful loading spinner
-    const spinner = createLoadingSpinner(sharedCourseModulesContainer);
-    
-    // Fetch course details
-    fetch(`${API_BASE_URL}/api/public/courses/${courseId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Course not found');
-      }
-      return response.json();
-    })
-    .then(course => {
-      // Remove spinner
-      spinner.remove();
-      
-      // Set course details
-      sharedCourseTitle.textContent = course.title;
-      sharedCourseInstructor.textContent = `Instructor: ${course.instructor}`;
-      
-      // Check if user is logged in and enrolled
-      if (currentUser && currentUser.role === 'student') {
-        // Check if user is enrolled in this course
-        return fetch(`${API_BASE_URL}/api/student/check-enrollment/${courseId}`, {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        })
-        .then(response => response.json())
-        .then(enrollmentData => {
-          if (enrollmentData.enrolled && enrollmentData.status === 'active') {
-            // User is enrolled, show course content
-            renderCourseModules(course, sharedCourseModulesContainer);
-            sharedCourseAccessMessage.style.display = 'none';
-          } else {
-            // User is not enrolled, show access message
-            sharedCourseAccessMessage.innerHTML = `
-              <div class="access-message">
-                <p>You are not enrolled in this course. Please enroll to access the content.</p>
-                <button class="enroll-btn btn btn-primary" data-course-id="${courseId}">Enroll Now</button>
-              </div>
-            `;
-            sharedCourseAccessMessage.style.display = 'block';
-            sharedCourseModulesContainer.innerHTML = '';
-            
-            // Add event listener to enroll button
-            const enrollBtn = sharedCourseAccessMessage.querySelector('.enroll-btn');
-            enrollBtn.addEventListener('click', () => {
-              showEnrollmentConfirmation(courseId);
-            });
-          }
-        });
-      } else {
-        // User is not logged in, show access message
-        sharedCourseAccessMessage.innerHTML = `
-          <div class="access-message">
-            <p>Please <a href="#" id="login-to-access">login</a> or <a href="#" id="signup-to-access">sign up</a> to enroll in this course.</p>
-          </div>
-        `;
-        sharedCourseAccessMessage.style.display = 'block';
-        sharedCourseModulesContainer.innerHTML = '';
-        
-        // Add event listeners to login and signup links
-        const loginLink = sharedCourseAccessMessage.querySelector('#login-to-access');
-        const signupLink = sharedCourseAccessMessage.querySelector('#signup-to-access');
-        
-        loginLink.addEventListener('click', (e) => {
-          e.preventDefault();
-          sessionStorage.setItem('enrollAfterLogin', courseId);
-          showSection('login');
-        });
-        
-        signupLink.addEventListener('click', (e) => {
-          e.preventDefault();
-          sessionStorage.setItem('enrollAfterLogin', courseId);
-          showSection('signup');
-        });
-      }
-      
-      // Show shared course section
-      showSection('sharedCourse');
-    })
-    .catch(error => {
-      console.error('Error loading shared course:', error);
-      
-      // Remove spinner and show error
-      spinner.remove();
-      sharedCourseModulesContainer.innerHTML = `
-        <div class="error-message">
-          <i class="fas fa-exclamation-triangle"></i>
-          <p>Failed to load course. The course may not exist or has been removed.</p>
-        </div>
-      `;
-      
-      // Show shared course section with error
-      showSection('sharedCourse');
-    });
-  }
-  
-  // Render course modules
-  function renderCourseModules(course, container) {
-    container.innerHTML = '';
-    
-    // Create beautiful module cards
-    course.modules.forEach((module, moduleIndex) => {
-      const moduleElement = document.createElement('div');
-      moduleElement.className = 'course-module beautiful-card';
-      moduleElement.style.opacity = '0';
-      moduleElement.style.transform = 'translateY(20px)';
-      
-      moduleElement.innerHTML = `
-        <div class="card-header">
-          <h3><i class="fas fa-book"></i> ${module.title}</h3>
-          <span class="module-duration"><i class="fas fa-clock"></i> ${module.duration}</span>
-        </div>
-        <div class="card-body">
-          <div class="lessons-container">
-            ${module.lessons.map((lesson, lessonIndex) => `
-              <div class="lesson">
-                <h4><i class="fas fa-play-circle"></i> ${lesson.title}</h4>
-                <p class="lesson-duration"><i class="fas fa-clock"></i> Duration: ${lesson.duration}</p>
-                <div class="video-container">
-                  ${lesson.videoUrl ? 
-                    `<iframe 
-                      src="${lesson.videoUrl}" 
-                      frameborder="0" 
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                      allowfullscreen>
-                    </iframe>` : 
-                    '<div class="no-video"><i class="fas fa-video-slash"></i> No video available for this lesson</div>'
-                  }
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-      
-      container.appendChild(moduleElement);
-      
-      // Animate module in with staggered delay
-      setTimeout(() => {
-        moduleElement.style.opacity = '1';
-        moduleElement.style.transform = 'translateY(0)';
-        moduleElement.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-      }, moduleIndex * 100);
-    });
-  }
-  
   // Setup event listeners
   function setupEventListeners() {
     // About and Contact navigation
@@ -1070,7 +530,6 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       showSection('about');
     });
-    
     navLinks.contact.addEventListener('click', (e) => {
       e.preventDefault();
       showSection('contact');
@@ -1092,7 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
     });
-
+    
     // Navigation
     navLinks.home.addEventListener('click', (e) => {
       e.preventDefault();
@@ -1123,14 +582,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
     
-    navLinks.studentSettings.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (currentUser && currentUser.role === 'student') {
-        showSection('studentSettings');
-        loadStudentSettings();
-      }
-    });
-    
     navLinks.admin.addEventListener('click', (e) => {
       e.preventDefault();
       if (currentUser && currentUser.role === 'admin') {
@@ -1144,6 +595,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (currentUser && currentUser.role === 'admin') {
         showSection('adminSettings');
         loadAdminSettings();
+      }
+    });
+    
+    navLinks.studentSettings.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (currentUser && currentUser.role === 'student') {
+        showSection('studentSettings');
+        loadStudentSettings();
       }
     });
     
@@ -1218,35 +677,33 @@ document.addEventListener('DOMContentLoaded', () => {
       loadPublicCourses();
     });
     
-    // Back to home button
-    if (backToHomeBtn) {
-      backToHomeBtn.addEventListener('click', (e) => {
+    // Course search
+    if (publicCourseSearchBtn) {
+      publicCourseSearchBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        showSection('home');
+        performPublicCourseSearch();
       });
     }
     
-    // Course search functionality
-    if (courseSearchInput && searchButton) {
-      searchButton.addEventListener('click', () => {
-        performCourseSearch(courseSearchInput.value, false);
-      });
-      
-      courseSearchInput.addEventListener('keyup', (e) => {
+    if (publicCourseSearchInput) {
+      publicCourseSearchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-          performCourseSearch(courseSearchInput.value, false);
+          performPublicCourseSearch();
         }
       });
     }
     
-    if (courseSearchLoggedInput && searchButtonLogged) {
-      searchButtonLogged.addEventListener('click', () => {
-        performCourseSearch(courseSearchLoggedInput.value, true);
+    if (courseSearchBtn) {
+      courseSearchBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        performCourseSearch();
       });
-      
-      courseSearchLoggedInput.addEventListener('keyup', (e) => {
+    }
+    
+    if (courseSearchInput) {
+      courseSearchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-          performCourseSearch(courseSearchLoggedInput.value, true);
+          performCourseSearch();
         }
       });
     }
@@ -1256,17 +713,18 @@ document.addEventListener('DOMContentLoaded', () => {
       openCourseModal();
     });
     
-    // Category modal
-    addCategoryBtn.addEventListener('click', () => {
-      openCategoryModal();
-    });
-    
     addModuleBtn.addEventListener('click', () => {
       addModuleInput();
     });
     
     courseForm.addEventListener('submit', handleCourseSubmit);
-    categoryForm.addEventListener('submit', handleCategorySubmit);
+    
+    // Panel modal
+    addPanelBtn.addEventListener('click', () => {
+      openPanelModal();
+    });
+    
+    panelForm.addEventListener('submit', handlePanelSubmit);
     
     // Tab buttons
     tabBtns.forEach(btn => {
@@ -1280,11 +738,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.close').forEach(btn => {
       btn.addEventListener('click', () => {
         courseModal.style.display = 'none';
-        categoryModal.style.display = 'none';
+        panelModal.style.display = 'none';
         viewCourseModal.style.display = 'none';
         userModal.style.display = 'none';
         userEnrollmentsModal.style.display = 'none';
         enrollmentConfirmationModal.style.display = 'none';
+        shareCourseModal.style.display = 'none';
       });
     });
     
@@ -1326,205 +785,38 @@ document.addEventListener('DOMContentLoaded', () => {
         enrollmentConfirmationModal.style.display = 'none';
       });
     }
-  }
-  
-  // Perform course search with fuzzy matching
-  function performCourseSearch(searchTerm, isLoggedIn) {
-    if (!searchTerm.trim()) {
-      // If search term is empty, reload all courses
-      if (isLoggedIn) {
-        loadCourses();
-      } else {
-        loadPublicCourses();
-      }
-      return;
-    }
     
-    // Use fuzzy search to find matching courses
-    const options = {
-      keys: ['title'],
-      threshold: 0.4, // Higher threshold = more lenient match
-      includeScore: true
-    };
-    
-    // Simple fuzzy search implementation (since we can't include external libraries)
-    const fuzzyMatch = (pattern, str) => {
-      pattern = pattern.toLowerCase();
-      str = str.toLowerCase();
-      
-      let patternIdx = 0;
-      let strIdx = 0;
-      let patternLength = pattern.length;
-      let strLength = str.length;
-      
-      while (patternIdx < patternLength && strIdx < strLength) {
-        if (pattern[patternIdx] === str[strIdx]) {
-          patternIdx++;
-        }
-        strIdx++;
-      }
-      
-      return patternIdx === patternLength;
-    };
-    
-    // Filter courses based on fuzzy match
-    const matchedCourses = allCourses.filter(course => {
-      return fuzzyMatch(searchTerm, course.title);
-    });
-    
-    // Display matched courses
-    if (isLoggedIn) {
-      displaySearchResults(matchedCourses, true);
-    } else {
-      displaySearchResults(matchedCourses, false);
-    }
-  }
-  
-  // Display search results
-  function displaySearchResults(courses, isLoggedIn) {
-    const container = isLoggedIn ? coursePanelsContainer : publicCoursePanelsContainer;
-    
-    // Clear container
-    container.innerHTML = '';
-    
-    if (courses.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">
-            <i class="fas fa-search"></i>
-          </div>
-          <h3>No courses found</h3>
-          <p>No courses match your search criteria. Try different keywords.</p>
-          <button class="btn btn-primary clear-search">
-            <i class="fas fa-times"></i> Clear Search
-          </button>
-        </div>
-      `;
-      
-      // Add event listener to clear search button
-      const clearSearchBtn = container.querySelector('.clear-search');
-      clearSearchBtn.addEventListener('click', () => {
-        if (isLoggedIn) {
-          loadCourses();
-        } else {
-          loadPublicCourses();
-        }
-      });
-      
-      return;
-    }
-    
-    // Create search results panel
-    const resultsPanel = document.createElement('div');
-    resultsPanel.className = 'course-panel';
-    resultsPanel.style.opacity = '0';
-    resultsPanel.style.transform = 'translateY(20px)';
-    
-    resultsPanel.innerHTML = `
-      <div class="panel-header">
-        <h3>Search Results (${courses.length} courses found)</h3>
-        <button class="btn btn-secondary clear-search-btn">
-          <i class="fas fa-times"></i> Clear
-        </button>
-      </div>
-      <div class="panel-content">
-        <div class="course-grid" id="search-results-grid">
-          <!-- Courses will be dynamically loaded here -->
-        </div>
-      </div>
-    `;
-    
-    container.appendChild(resultsPanel);
-    
-    // Add courses to the results panel
-    const courseGrid = resultsPanel.querySelector('.course-grid');
-    courses.forEach((course, index) => {
-      const courseCard = createCourseCard(course, isLoggedIn);
-      courseGrid.appendChild(courseCard);
-      
-      // Animate card in with staggered delay
-      setTimeout(() => {
-        courseCard.style.opacity = '1';
-        courseCard.style.transform = 'translateY(0)';
-        courseCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-      }, index * 100);
-    });
-    
-    // Animate panel in
-    setTimeout(() => {
-      resultsPanel.style.opacity = '1';
-      resultsPanel.style.transform = 'translateY(0)';
-      resultsPanel.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-    }, 100);
-    
-    // Add event listener to clear search button
-    const clearSearchBtn = resultsPanel.querySelector('.clear-search-btn');
-    clearSearchBtn.addEventListener('click', () => {
-      if (isLoggedIn) {
-        loadCourses();
-      } else {
-        loadPublicCourses();
-      }
-    });
-    
-    // Add event listeners to enroll buttons
-    if (isLoggedIn && currentUser && currentUser.role === 'student') {
-      document.querySelectorAll('.enroll-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const courseId = e.target.getAttribute('data-course-id');
-          showEnrollmentConfirmation(courseId);
-        });
+    // Share course modal
+    if (copyLinkBtn) {
+      copyLinkBtn.addEventListener('click', () => {
+        shareLinkInput.select();
+        document.execCommand('copy');
+        
+        // Change button text temporarily
+        const originalText = copyLinkBtn.innerHTML;
+        copyLinkBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        
+        setTimeout(() => {
+          copyLinkBtn.innerHTML = originalText;
+        }, 2000);
+        
+        createNotification('Link copied to clipboard!', 'success');
       });
     }
     
-    // Add event listeners to login buttons for non-logged in users
-    if (!isLoggedIn) {
-      document.querySelectorAll('.login-to-enroll-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const courseId = e.target.getAttribute('data-course-id');
-          // Store the course ID in session storage to redirect after login
-          sessionStorage.setItem('enrollAfterLogin', courseId);
-          showSection('login');
-        });
+    if (closeShareModalBtn) {
+      closeShareModalBtn.addEventListener('click', () => {
+        shareCourseModal.style.display = 'none';
       });
     }
-  }
-  
-  // Show section with animation
-  function showSection(sectionName) {
-    // First, hide all sections
-    Object.values(sections).forEach(section => {
-      if (section) {
-        section.style.display = 'none';
+    
+    // Delete user buttons (event delegation)
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.delete-user-btn')) {
+        const userId = e.target.closest('.delete-user-btn').getAttribute('data-user-id');
+        deleteUser(userId);
       }
     });
-    
-    // Then show the requested section
-    if (sections[sectionName]) {
-      sections[sectionName].style.display = 'block';
-      
-      // Reset animation properties first
-      sections[sectionName].style.opacity = '0';
-      sections[sectionName].style.transform = 'translateY(20px)';
-      
-      // Force a reflow to apply the display change
-      sections[sectionName].offsetHeight;
-      
-      // Now apply the animation
-      setTimeout(() => {
-        sections[sectionName].style.opacity = '1';
-        sections[sectionName].style.transform = 'translateY(0)';
-      }, 10);
-    } else {
-      console.error(`Section ${sectionName} not found`);
-      // Fallback: show the first available section
-      const firstSection = Object.values(sections).find(section => section);
-      if (firstSection) {
-        firstSection.style.display = 'block';
-        firstSection.style.opacity = '1';
-        firstSection.style.transform = 'translateY(0)';
-      }
-    }
   }
   
   // Handle contact form submission with Formspree
@@ -1611,6 +903,43 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
+  // Show section with animation
+  function showSection(sectionName) {
+    // First, hide all sections
+    Object.values(sections).forEach(section => {
+      if (section) {
+        section.style.display = 'none';
+      }
+    });
+    
+    // Then show the requested section
+    if (sections[sectionName]) {
+      sections[sectionName].style.display = 'block';
+      
+      // Reset animation properties first
+      sections[sectionName].style.opacity = '0';
+      sections[sectionName].style.transform = 'translateY(20px)';
+      
+      // Force a reflow to apply the display change
+      sections[sectionName].offsetHeight;
+      
+      // Now apply the animation
+      setTimeout(() => {
+        sections[sectionName].style.opacity = '1';
+        sections[sectionName].style.transform = 'translateY(0)';
+      }, 10);
+    } else {
+      console.error(`Section ${sectionName} not found`);
+      // Fallback: show the first available section
+      const firstSection = Object.values(sections).find(section => section);
+      if (firstSection) {
+        firstSection.style.display = 'block';
+        firstSection.style.opacity = '1';
+        firstSection.style.transform = 'translateY(0)';
+      }
+    }
+  }
+  
   // Show tab with animation
   function showTab(tabId) {
     tabBtns.forEach(btn => {
@@ -1644,12 +973,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (navLinks.admin) navLinks.admin.style.display = 'block';
         if (navLinks.adminSettings) navLinks.adminSettings.style.display = 'block';
         if (navLinks.dashboard) navLinks.dashboard.style.display = 'none';
-        if (navLinks.studentSettings) navLinks.studentSettings) navLinks.studentSettings.style.display = 'none';
+        if (navLinks.studentSettings) navLinks.studentSettings.style.display = 'none';
       } else {
         if (navLinks.admin) navLinks.admin.style.display = 'none';
         if (navLinks.adminSettings) navLinks.adminSettings.style.display = 'none';
         if (navLinks.dashboard) navLinks.dashboard.style.display = 'block';
-        if (navLinks.studentSettings) navLinks.studentSettings) navLinks.studentSettings.style.display = 'block';
+        if (navLinks.studentSettings) navLinks.studentSettings.style.display = 'block';
       }
     } else {
       if (navLinks.login) navLinks.login.style.display = 'block';
@@ -1658,7 +987,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (navLinks.admin) navLinks.admin.style.display = 'none';
       if (navLinks.adminSettings) navLinks.adminSettings.style.display = 'none';
       if (navLinks.dashboard) navLinks.dashboard.style.display = 'none';
-      if (navLinks.studentSettings) navLinks.studentSettings) navLinks.studentSettings.style.display = 'none';
+      if (navLinks.studentSettings) navLinks.studentSettings.style.display = 'none';
       
       // Show courses link for non-logged in users to see public courses
       if (navLinks.courses) navLinks.courses.style.display = 'block';
@@ -2041,7 +1370,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
       },
-      body: JSON.stringify({ username, currentPassword, newPassword })
+      body: JSON.stringify({ username, email, currentPassword, newPassword })
     })
     .then(response => {
       if (!response.ok) {
@@ -2097,6 +1426,461 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('student-settings-email')) {
       document.getElementById('student-settings-email').value = currentUser.email;
     }
+  }
+  
+  // Perform public course search
+  function performPublicCourseSearch() {
+    const query = publicCourseSearchInput.value.trim();
+    
+    if (!query) {
+      createNotification('Please enter a search term', 'warning');
+      return;
+    }
+    
+    // Show loading state
+    const courseContainer = publicCourseContainer;
+    const spinner = createLoadingSpinner(courseContainer);
+    
+    fetch(`${API_BASE_URL}/api/courses/search?query=${encodeURIComponent(query)}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Search failed');
+        }
+        return response.json();
+      })
+      .then(courses => {
+        // Remove spinner
+        spinner.remove();
+        
+        courseContainer.innerHTML = '';
+        
+        if (courses.length === 0) {
+          courseContainer.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">
+                <i class="fas fa-search"></i>
+              </div>
+              <h3>No courses found</h3>
+              <p>No courses match your search criteria. Try a different search term.</p>
+            </div>
+          `;
+          return;
+        }
+        
+        // Create beautiful course cards
+        courses.forEach((course, index) => {
+          const courseCard = document.createElement('div');
+          courseCard.className = 'course-card beautiful-card';
+          courseCard.style.opacity = '0';
+          courseCard.style.transform = 'translateY(20px)';
+          
+          // Validate and fix image URL
+          const imageUrl = validateImageUrl(course.imageUrl);
+          
+          courseCard.innerHTML = `
+            <div class="card-image">
+              ${imageUrl ? 
+                `<img src="${imageUrl}" alt="${course.title}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                 <div class="image-error" style="display: none;">
+                   <i class="fas fa-exclamation-triangle"></i>
+                   <p>Image not available</p>
+                 </div>` : 
+                `<div class="image-error">
+                   <i class="fas fa-exclamation-triangle"></i>
+                   <p>No image provided</p>
+                 </div>`
+              }
+            </div>
+            <div class="card-content">
+              <h3>${course.title}</h3>
+              <p>${course.description}</p>
+              <div class="course-meta">
+                <div class="course-instructor">
+                  <i class="fas fa-user"></i> ${course.instructor}
+                </div>
+                <div class="course-price">
+                  <i class="fas fa-dollar-sign"></i> ${course.price}
+                </div>
+                ${course.panel ? `<div class="course-panel">
+                  <i class="fas fa-folder"></i> ${course.panel.name}
+                </div>` : ''}
+              </div>
+              <div class="course-actions">
+                ${currentUser && currentUser.role === 'student' ? 
+                  `<button class="enroll-btn btn btn-primary" data-course-id="${course._id}">
+                    <i class="fas fa-user-plus"></i> Enroll Now
+                  </button>` : 
+                  !currentUser ? 
+                  `<button class="login-to-enroll-btn btn btn-primary" data-course-id="${course._id}">
+                    <i class="fas fa-sign-in-alt"></i> Login to Enroll
+                  </button>` : ''}
+                <button class="share-course-btn btn btn-outline" data-course-id="${course._id}">
+                  <i class="fas fa-share-alt"></i> Share
+                </button>
+              </div>
+            </div>
+          `;
+          
+          courseContainer.appendChild(courseCard);
+          
+          // Animate card in with staggered delay
+          setTimeout(() => {
+            courseCard.style.opacity = '1';
+            courseCard.style.transform = 'translateY(0)';
+            courseCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          }, index * 100);
+        });
+        
+        // Add event listeners to enroll buttons
+        if (currentUser && currentUser.role === 'student') {
+          document.querySelectorAll('.enroll-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const courseId = e.target.getAttribute('data-course-id');
+              showEnrollmentConfirmation(courseId);
+            });
+          });
+        }
+        
+        // Add event listeners to login buttons for non-logged in users
+        if (!currentUser) {
+          document.querySelectorAll('.login-to-enroll-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const courseId = e.target.getAttribute('data-course-id');
+              sessionStorage.setItem('enrollAfterLogin', courseId);
+              showSection('login');
+            });
+          });
+        }
+        
+        // Add event listeners to share buttons
+        document.querySelectorAll('.share-course-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const courseId = e.target.getAttribute('data-course-id');
+            shareCourse(courseId);
+          });
+        });
+      })
+      .catch(error => {
+        // Remove spinner and show error
+        spinner.remove();
+        courseContainer.innerHTML = `
+          <div class="error-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>Failed to search courses: ${error.message}</p>
+          </div>
+        `;
+        
+        createNotification('Failed to search courses', 'error');
+      });
+  }
+  
+  // Perform course search
+  function performCourseSearch() {
+    const query = courseSearchInput.value.trim();
+    
+    if (!query) {
+      createNotification('Please enter a search term', 'warning');
+      return;
+    }
+    
+    // Show loading state
+    const courseContainer = courseContainer;
+    const spinner = createLoadingSpinner(courseContainer);
+    
+    fetch(`${API_BASE_URL}/api/courses/search?query=${encodeURIComponent(query)}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Search failed');
+        }
+        return response.json();
+      })
+      .then(courses => {
+        // Remove spinner
+        spinner.remove();
+        
+        courseContainer.innerHTML = '';
+        
+        if (courses.length === 0) {
+          courseContainer.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">
+                <i class="fas fa-search"></i>
+              </div>
+              <h3>No courses found</h3>
+              <p>No courses match your search criteria. Try a different search term.</p>
+            </div>
+          `;
+          return;
+        }
+        
+        // Create beautiful course cards
+        courses.forEach((course, index) => {
+          const courseCard = document.createElement('div');
+          courseCard.className = 'course-card beautiful-card';
+          courseCard.style.opacity = '0';
+          courseCard.style.transform = 'translateY(20px)';
+          
+          // Validate and fix image URL
+          const imageUrl = validateImageUrl(course.imageUrl);
+          
+          courseCard.innerHTML = `
+            <div class="card-image">
+              ${imageUrl ? 
+                `<img src="${imageUrl}" alt="${course.title}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                 <div class="image-error" style="display: none;">
+                   <i class="fas fa-exclamation-triangle"></i>
+                   <p>Image not available</p>
+                 </div>` : 
+                `<div class="image-error">
+                   <i class="fas fa-exclamation-triangle"></i>
+                   <p>No image provided</p>
+                 </div>`
+              }
+            </div>
+            <div class="card-content">
+              <h3>${course.title}</h3>
+              <p>${course.description}</p>
+              <div class="course-meta">
+                <div class="course-instructor">
+                  <i class="fas fa-user"></i> ${course.instructor}
+                </div>
+                <div class="course-price">
+                  <i class="fas fa-dollar-sign"></i> ${course.price}
+                </div>
+                ${course.panel ? `<div class="course-panel">
+                  <i class="fas fa-folder"></i> ${course.panel.name}
+                </div>` : ''}
+              </div>
+              <div class="course-actions">
+                ${currentUser && currentUser.role === 'student' ? 
+                  `<button class="enroll-btn btn btn-primary" data-course-id="${course._id}">
+                    <i class="fas fa-user-plus"></i> Enroll Now
+                  </button>` : ''}
+                <button class="share-course-btn btn btn-outline" data-course-id="${course._id}">
+                  <i class="fas fa-share-alt"></i> Share
+                </button>
+              </div>
+            </div>
+          `;
+          
+          courseContainer.appendChild(courseCard);
+          
+          // Animate card in with staggered delay
+          setTimeout(() => {
+            courseCard.style.opacity = '1';
+            courseCard.style.transform = 'translateY(0)';
+            courseCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          }, index * 100);
+        });
+        
+        // Add event listeners to enroll buttons
+        if (currentUser && currentUser.role === 'student') {
+          document.querySelectorAll('.enroll-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const courseId = e.target.getAttribute('data-course-id');
+              showEnrollmentConfirmation(courseId);
+            });
+          });
+        }
+        
+        // Add event listeners to share buttons
+        document.querySelectorAll('.share-course-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const courseId = e.target.getAttribute('data-course-id');
+            shareCourse(courseId);
+          });
+        });
+      })
+      .catch(error => {
+        // Remove spinner and show error
+        spinner.remove();
+        courseContainer.innerHTML = `
+          <div class="error-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>Failed to search courses: ${error.message}</p>
+          </div>
+        `;
+        
+        createNotification('Failed to search courses', 'error');
+      });
+  }
+  
+  // Share course
+  function shareCourse(courseId) {
+    // Generate shareable URL
+    const shareUrl = `${window.location.origin}/course/${courseId}`;
+    
+    // Create a modal to show the shareable link
+    const shareModal = document.getElementById('share-course-modal');
+    
+    // Set the share link
+    if (shareLinkInput) {
+      shareLinkInput.value = shareUrl;
+    }
+    
+    // Show modal
+    if (shareModal) {
+      shareModal.style.display = 'block';
+      shareModal.style.opacity = '0';
+      shareModal.style.transform = 'scale(0.9)';
+      
+      // Trigger reflow
+      shareModal.offsetHeight;
+      
+      // Animate in
+      shareModal.style.opacity = '1';
+      shareModal.style.transform = 'scale(1)';
+      shareModal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    }
+  }
+  
+  // Load courses (for logged in students)
+  function loadCourses() {
+    console.log('Loading courses...');
+    console.log('Current user:', currentUser);
+    console.log('Auth token:', authToken ? 'Present' : 'Missing');
+    
+    // Create beautiful loading spinner
+    const spinner = createLoadingSpinner(courseContainer);
+    
+    // Check if user is authenticated
+    if (!authToken || !currentUser) {
+      // Redirect to login if not authenticated
+      showSection('login');
+      return;
+    }
+    
+    fetch(`${API_BASE_URL}/api/student/courses`, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    })
+    .then(response => {
+      console.log('Response status:', response.status);
+      
+      if (response.status === 403) {
+        // If forbidden, the token might be expired or invalid
+        logout();
+        showSection('login');
+        throw new Error('Session expired. Please login again.');
+      }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
+    })
+    .then(data => {
+      console.log('Response data:', data);
+      
+      // Check if the response is an array
+      if (!Array.isArray(data)) {
+        throw new Error('Expected an array of courses');
+      }
+      
+      // Remove spinner
+      spinner.remove();
+      
+      courseContainer.innerHTML = '';
+      
+      // Create beautiful course cards
+      data.forEach((course, index) => {
+        console.log('Processing course:', course);
+        console.log('Course imageUrl:', course.imageUrl);
+        
+        const courseCard = document.createElement('div');
+        courseCard.className = 'course-card beautiful-card';
+        courseCard.style.opacity = '0';
+        courseCard.style.transform = 'translateY(20px)';
+        
+        // Validate and fix image URL
+        const imageUrl = validateImageUrl(course.imageUrl);
+        console.log('Using imageUrl:', imageUrl);
+        
+        courseCard.innerHTML = `
+          <div class="card-image">
+            ${imageUrl ? 
+              `<img src="${imageUrl}" alt="${course.title}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+               <div class="image-error" style="display: none;">
+                 <i class="fas fa-exclamation-triangle"></i>
+                 <p>Image not available</p>
+               </div>` : 
+              `<div class="image-error">
+                 <i class="fas fa-exclamation-triangle"></i>
+                 <p>No image provided</p>
+               </div>`
+            }
+          </div>
+          <div class="card-content">
+            <h3>${course.title}</h3>
+            <p>${course.description}</p>
+            <div class="course-meta">
+              <div class="course-instructor">
+                <i class="fas fa-user"></i> ${course.instructor}
+              </div>
+              <div class="course-price">
+                <i class="fas fa-dollar-sign"></i> ${course.price}
+              </div>
+              ${course.panel ? `<div class="course-panel">
+                <i class="fas fa-folder"></i> ${course.panel.name}
+              </div>` : ''}
+            </div>
+            <div class="course-actions">
+              ${currentUser && currentUser.role === 'student' ? 
+                `<button class="enroll-btn btn btn-primary" data-course-id="${course._id}">
+                  <i class="fas fa-user-plus"></i> Enroll Now
+                </button>` : ''}
+              <button class="share-course-btn btn btn-outline" data-course-id="${course._id}">
+                <i class="fas fa-share-alt"></i> Share
+              </button>
+            </div>
+          </div>
+        `;
+        
+        courseContainer.appendChild(courseCard);
+        
+        // Animate card in with staggered delay
+        setTimeout(() => {
+          courseCard.style.opacity = '1';
+          courseCard.style.transform = 'translateY(0)';
+          courseCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        }, index * 100);
+      });
+      
+      // Add event listeners to enroll buttons
+      if (currentUser && currentUser.role === 'student') {
+        document.querySelectorAll('.enroll-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const courseId = e.target.getAttribute('data-course-id');
+            showEnrollmentConfirmation(courseId);
+          });
+        });
+      }
+      
+      // Add event listeners to share buttons
+      document.querySelectorAll('.share-course-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const courseId = e.target.getAttribute('data-course-id');
+          shareCourse(courseId);
+        });
+      });
+    })
+    .catch(error => {
+      console.error('Error loading courses:', error);
+      
+      // Remove spinner and show error
+      spinner.remove();
+      courseContainer.innerHTML = `
+        <div class="error-message">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>Failed to load courses: ${error.message}</p>
+        </div>
+      `;
+      
+      // Show error notification
+      createNotification('Failed to load courses', 'error');
+    });
   }
   
   // Show enrollment confirmation modal
@@ -2465,7 +2249,49 @@ document.addEventListener('DOMContentLoaded', () => {
         courseModulesContainer.innerHTML = '';
         
         // Create beautiful module cards
-        renderCourseModules(course, courseModulesContainer);
+        course.modules.forEach((module, moduleIndex) => {
+          const moduleElement = document.createElement('div');
+          moduleElement.className = 'course-module beautiful-card';
+          moduleElement.style.opacity = '0';
+          moduleElement.style.transform = 'translateY(20px)';
+          
+          moduleElement.innerHTML = `
+            <div class="card-header">
+              <h3><i class="fas fa-book"></i> ${module.title}</h3>
+              <span class="module-duration"><i class="fas fa-clock"></i> ${module.duration}</span>
+            </div>
+            <div class="card-body">
+              <div class="lessons-container">
+                ${module.lessons.map((lesson, lessonIndex) => `
+                  <div class="lesson">
+                    <h4><i class="fas fa-play-circle"></i> ${lesson.title}</h4>
+                    <p class="lesson-duration"><i class="fas fa-clock"></i> Duration: ${lesson.duration}</p>
+                    <div class="video-container">
+                      ${lesson.videoUrl ? 
+                        `<iframe 
+                          src="${lesson.videoUrl}" 
+                          frameborder="0" 
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                          allowfullscreen>
+                        </iframe>` : 
+                        '<div class="no-video"><i class="fas fa-video-slash"></i> No video available for this lesson</div>'
+                      }
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+          
+          courseModulesContainer.appendChild(moduleElement);
+          
+          // Animate module in with staggered delay
+          setTimeout(() => {
+            moduleElement.style.opacity = '1';
+            moduleElement.style.transform = 'translateY(0)';
+            moduleElement.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          }, moduleIndex * 100);
+        });
       }
       
       showSection('courseContent');
@@ -2592,7 +2418,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load admin dashboard
   function loadAdminDashboard() {
     loadAdminCourses();
-    loadAdminCategories();
+    loadAdminPanels();
     loadAdminEnrollments();
     loadAdminUsers();
   }
@@ -2608,90 +2434,284 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-// Load admin categories
-function loadAdminCategories() {
-  // Create beautiful loading spinner
-  const spinner = createLoadingSpinner(adminCategoryContainer);
+  // Load admin panels
+  function loadAdminPanels() {
+    // Create beautiful loading spinner
+    const spinner = createLoadingSpinner(adminPanelContainer);
+    
+    fetch(`${API_BASE_URL}/api/panels`, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    })
+    .then(response => response.json())
+    .then(panels => {
+      // Remove spinner
+      spinner.remove();
+      
+      if (adminPanelContainer) {
+        adminPanelContainer.innerHTML = '';
+        
+        // Create beautiful panel cards
+        panels.forEach((panel, index) => {
+          const panelCard = document.createElement('div');
+          panelCard.className = 'panel-card beautiful-card';
+          panelCard.style.opacity = '0';
+          panelCard.style.transform = 'translateY(20px)';
+          
+          panelCard.innerHTML = `
+            <div class="panel-content">
+              <h3>${panel.name}</h3>
+              <p>${panel.description || 'No description'}</p>
+              <div class="panel-actions">
+                <button class="edit-panel-btn btn btn-primary" data-panel-id="${panel._id}">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="delete-panel-btn btn btn-danger" data-panel-id="${panel._id}">
+                  <i class="fas fa-trash"></i> Delete
+                </button>
+              </div>
+            </div>
+          `;
+          
+          adminPanelContainer.appendChild(panelCard);
+          
+          // Animate card in with staggered delay
+          setTimeout(() => {
+            panelCard.style.opacity = '1';
+            panelCard.style.transform = 'translateY(0)';
+            panelCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          }, index * 100);
+        });
+        
+        // Add event listeners to edit and delete buttons
+        document.querySelectorAll('.edit-panel-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const panelId = e.target.getAttribute('data-panel-id');
+            editPanel(panelId);
+          });
+        });
+        
+        document.querySelectorAll('.delete-panel-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const panelId = e.target.getAttribute('data-panel-id');
+            deletePanel(panelId);
+          });
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Error loading admin panels:', error);
+      
+      // Remove spinner and show error
+      spinner.remove();
+      adminPanelContainer.innerHTML = `
+        <div class="error-message">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>Failed to load admin panels: ${error.message}</p>
+        </div>
+      `;
+      
+      // Show error notification
+      createNotification('Failed to load admin panels', 'error');
+    });
+  }
   
-  fetch(`${API_BASE_URL}/api/admin/categories`, {
-    headers: {
-      'Authorization': `Bearer ${authToken}`
-    }
-  })
-  .then(response => response.json())
-  .then(categories => {
-    // Remove spinner
-    spinner.remove();
+  // Open panel modal
+  function openPanelModal(panel = null) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('panel-modal');
     
-    if (adminCategoryContainer) {
-      adminCategoryContainer.innerHTML = '';
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'panel-modal';
+      modal.className = 'modal';
+      modal.innerHTML = `
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <h2 id="panel-modal-title">Add New Panel</h2>
+          <form id="panel-form">
+            <input type="hidden" id="panel-id">
+            <div class="form-group">
+              <label for="panel-name">Name</label>
+              <input type="text" id="panel-name" required>
+            </div>
+            <div class="form-group">
+              <label for="panel-description">Description</label>
+              <textarea id="panel-description" rows="4"></textarea>
+            </div>
+            <button type="submit" class="cta-button">Save Panel</button>
+          </form>
+        </div>
+      `;
       
-      // Create beautiful category cards
-      categories.forEach((category, index) => {
-        const categoryCard = document.createElement('div');
-        categoryCard.className = 'category-card beautiful-card';
-        categoryCard.style.opacity = '0';
-        categoryCard.style.transform = 'translateY(20px)';
-        
-        categoryCard.innerHTML = `
-          <div class="card-header">
-            <h3>${category.name}</h3>
-          </div>
-          <div class="card-body">
-            <p>${category.description}</p>
-          </div>
-          <div class="card-footer">
-            <button class="edit-category-btn btn btn-primary" data-category-id="${category._id}">
-              <i class="fas fa-edit"></i> Edit
-            </button>
-            <button class="delete-category-btn btn btn-danger" data-category-id="${category._id}">
-              <i class="fas fa-trash"></i> Delete
-            </button>
-          </div>
-        `;
-        
-        adminCategoryContainer.appendChild(categoryCard);
-        
-        // Animate card in with staggered delay
-        setTimeout(() => {
-          categoryCard.style.opacity = '1';
-          categoryCard.style.transform = 'translateY(0)';
-          categoryCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-        }, index * 100);
+      document.body.appendChild(modal);
+      
+      // Add close functionality
+      modal.querySelector('.close').addEventListener('click', () => {
+        modal.style.display = 'none';
       });
       
-      // Add event listeners to edit and delete buttons
-      document.querySelectorAll('.edit-category-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const categoryId = e.target.getAttribute('data-category-id');
-          editCategory(categoryId);
-        });
-      });
-      
-      document.querySelectorAll('.delete-category-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const categoryId = e.target.getAttribute('data-category-id');
-          deleteCategory(categoryId);
-        });
-      });
+      // Add form submit handler
+      modal.querySelector('#panel-form').addEventListener('submit', handlePanelSubmit);
     }
-  })
-  .catch(error => {
-    console.error('Error loading admin categories:', error);
     
-    // Remove spinner and show error
-    spinner.remove();
-    adminCategoryContainer.innerHTML = `
-      <div class="error-message">
-        <i class="fas fa-exclamation-triangle"></i>
-        <p>Failed to load admin categories: ${error.message}</p>
+    // Populate form
+    if (panel) {
+      document.getElementById('panel-modal-title').textContent = 'Edit Panel';
+      document.getElementById('panel-id').value = panel._id;
+      document.getElementById('panel-name').value = panel.name;
+      document.getElementById('panel-description').value = panel.description || '';
+    } else {
+      document.getElementById('panel-modal-title').textContent = 'Add New Panel';
+      document.getElementById('panel-id').value = '';
+      document.getElementById('panel-form').reset();
+    }
+    
+    // Show modal
+    modal.style.display = 'block';
+    modal.style.opacity = '0';
+    modal.style.transform = 'scale(0.9)';
+    
+    // Trigger reflow
+    modal.offsetHeight;
+    
+    // Animate in
+    modal.style.opacity = '1';
+    modal.style.transform = 'scale(1)';
+    modal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+  }
+  
+  // Handle panel submit
+  function handlePanelSubmit(e) {
+    e.preventDefault();
+    
+    const panelId = document.getElementById('panel-id').value;
+    const name = document.getElementById('panel-name').value;
+    const description = document.getElementById('panel-description').value;
+    
+    const url = panelId ? `${API_BASE_URL}/api/panels/${panelId}` : `${API_BASE_URL}/api/panels`;
+    const method = panelId ? 'PUT' : 'POST';
+    
+    fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ name, description })
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to save panel');
+      }
+      return response.json();
+    })
+    .then(data => {
+      createNotification(`Panel ${panelId ? 'updated' : 'created'} successfully!`, 'success');
+      document.getElementById('panel-modal').style.display = 'none';
+      loadAdminPanels();
+    })
+    .catch(error => {
+      createNotification(`Failed to ${panelId ? 'update' : 'create'} panel`, 'error');
+      console.error('Panel save error:', error);
+    });
+  }
+  
+  // Edit panel
+  function editPanel(panelId) {
+    fetch(`${API_BASE_URL}/api/panels/${panelId}`, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    })
+    .then(response => response.json())
+    .then(panel => {
+      openPanelModal(panel);
+    })
+    .catch(error => {
+      createNotification('Error loading panel details', 'error');
+      console.error('Error loading panel:', error);
+    });
+  }
+  
+  // Delete panel
+  function deletePanel(panelId) {
+    // Create confirmation modal
+    const confirmModal = document.createElement('div');
+    confirmModal.className = 'confirm-modal modal';
+    confirmModal.innerHTML = `
+      <div class="modal-content">
+        <div class="confirm-header">
+          <i class="fas fa-exclamation-triangle"></i>
+          <h3>Confirm Deletion</h3>
+        </div>
+        <div class="confirm-body">
+          <p>Are you sure you want to delete this panel? This action cannot be undone.</p>
+        </div>
+        <div class="confirm-actions">
+          <button class="btn btn-secondary" id="cancel-panel-delete">Cancel</button>
+          <button class="btn btn-danger" id="confirm-panel-delete">Delete</button>
+        </div>
       </div>
     `;
     
-    // Show error notification
-    createNotification('Failed to load admin categories', 'error');
-  });
-}
+    document.body.appendChild(confirmModal);
+    
+    // Show modal
+    confirmModal.style.display = 'block';
+    confirmModal.style.opacity = '0';
+    confirmModal.style.transform = 'scale(0.9)';
+    
+    // Trigger reflow
+    confirmModal.offsetHeight;
+    
+    // Animate in
+    confirmModal.style.opacity = '1';
+    confirmModal.style.transform = 'scale(1)';
+    confirmModal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    
+    // Add event listeners
+    const cancelBtn = confirmModal.querySelector('#cancel-panel-delete');
+    const confirmBtn = confirmModal.querySelector('#confirm-panel-delete');
+    
+    const closeModal = () => {
+      confirmModal.style.opacity = '0';
+      confirmModal.style.transform = 'scale(0.9)';
+      confirmModal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      
+      setTimeout(() => {
+        confirmModal.remove();
+      }, 300);
+    };
+    
+    cancelBtn.addEventListener('click', closeModal);
+    
+    confirmBtn.addEventListener('click', () => {
+      closeModal();
+      
+      fetch(`${API_BASE_URL}/api/panels/${panelId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Panel deletion failed');
+        }
+        return response.json();
+      })
+      .then(data => {
+        createNotification('Panel deleted successfully!', 'success');
+        loadAdminPanels();
+      })
+      .catch(error => {
+        createNotification('Failed to delete panel', 'error');
+        console.error('Panel deletion error:', error);
+      });
+    });
+  }
   
   // Load admin courses
   function loadAdminCourses() {
@@ -2749,6 +2769,9 @@ function loadAdminCategories() {
                 <div class="course-price">
                   <i class="fas fa-dollar-sign"></i> ${course.price}
                 </div>
+                ${course.panel ? `<div class="course-panel">
+                  <i class="fas fa-folder"></i> ${course.panel.name}
+                </div>` : ''}
               </div>
               <div class="course-actions">
                 <button class="edit-course-btn btn btn-primary" data-course-id="${course._id}">
@@ -2815,6 +2838,28 @@ function loadAdminCategories() {
     });
   }
   
+  // Load panels for dropdown
+  function loadPanelsForDropdown() {
+    fetch(`${API_BASE_URL}/api/panels`)
+      .then(response => response.json())
+      .then(panels => {
+        const panelSelect = document.getElementById('course-panel');
+        if (panelSelect) {
+          panelSelect.innerHTML = '<option value="">Select a panel</option>';
+          
+          panels.forEach(panel => {
+            const option = document.createElement('option');
+            option.value = panel._id;
+            option.textContent = panel.name;
+            panelSelect.appendChild(option);
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Error loading panels:', error);
+      });
+  }
+  
   // View course as admin
   function viewCourseAsAdmin(courseId) {
     fetch(`${API_BASE_URL}/api/admin/courses/${courseId}`, {
@@ -2837,17 +2882,55 @@ function loadAdminCategories() {
       if (document.getElementById('view-course-description')) {
         document.getElementById('view-course-description').textContent = course.description;
       }
-      if (document.getElementById('view-course-category')) {
-        const category = allCategories.find(cat => cat._id === course.category);
-        document.getElementById('view-course-category').textContent = category ? category.name : 'Uncategorized';
-      }
       
       // Load modules
       const modulesContainer = document.getElementById('view-course-modules-container');
       if (modulesContainer) {
         modulesContainer.innerHTML = '';
         
-        renderCourseModules(course, modulesContainer);
+        course.modules.forEach((module, moduleIndex) => {
+          const moduleElement = document.createElement('div');
+          moduleElement.className = 'course-module beautiful-card';
+          moduleElement.style.opacity = '0';
+          moduleElement.style.transform = 'translateY(20px)';
+          
+          moduleElement.innerHTML = `
+            <div class="card-header">
+              <h3><i class="fas fa-book"></i> ${module.title}</h3>
+              <span class="module-duration"><i class="fas fa-clock"></i> ${module.duration}</span>
+            </div>
+            <div class="card-body">
+              <div class="lessons-container">
+                ${module.lessons.map((lesson, lessonIndex) => `
+                  <div class="lesson">
+                    <h4><i class="fas fa-play-circle"></i> ${lesson.title}</h4>
+                    <p class="lesson-duration"><i class="fas fa-clock"></i> Duration: ${lesson.duration}</p>
+                    <div class="video-container">
+                      ${lesson.videoUrl ? 
+                        `<iframe 
+                          src="${lesson.videoUrl}" 
+                          frameborder="0" 
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                          allowfullscreen>
+                        </iframe>` : 
+                        '<div class="no-video"><i class="fas fa-video-slash"></i> No video available for this lesson</div>'
+                      }
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+          
+          modulesContainer.appendChild(moduleElement);
+          
+          // Animate module in with staggered delay
+          setTimeout(() => {
+            moduleElement.style.opacity = '1';
+            moduleElement.style.transform = 'translateY(0)';
+            moduleElement.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          }, moduleIndex * 100);
+        });
       }
       
       // Show modal with animation
@@ -3069,10 +3152,9 @@ function loadAdminCategories() {
                 <button class="view-user-btn btn btn-secondary btn-sm" data-user-id="${user._id}">
                   <i class="fas fa-user"></i> View Details
                 </button>
-                ${user.role === 'student' ? 
-                  `<button class="delete-user-btn btn btn-danger btn-sm" data-user-id="${user._id}">
-                    <i class="fas fa-trash"></i> Delete
-                  </button>` : ''}
+                <button class="delete-user-btn btn btn-danger btn-sm" data-user-id="${user._id}">
+                  <i class="fas fa-trash"></i> Delete
+                </button>
               </div>
             </td>
           `;
@@ -3101,14 +3183,6 @@ function loadAdminCategories() {
             viewUserDetails(userId);
           });
         });
-        
-        // Add event listeners to delete buttons
-        document.querySelectorAll('.delete-user-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const userId = e.target.getAttribute('data-user-id');
-            deleteUser(userId);
-          });
-        });
       }
     })
     .catch(error => {
@@ -3132,7 +3206,7 @@ function loadAdminCategories() {
   
   // Delete user
   function deleteUser(userId) {
-    // Create beautiful confirmation modal
+    // Create confirmation modal
     const confirmModal = document.createElement('div');
     confirmModal.className = 'confirm-modal modal';
     confirmModal.innerHTML = `
@@ -3142,18 +3216,18 @@ function loadAdminCategories() {
           <h3>Confirm Deletion</h3>
         </div>
         <div class="confirm-body">
-          <p>Are you sure you want to delete this user? This action cannot be undone.</p>
+          <p>Are you sure you want to delete this user? This action cannot be undone and will also delete all enrollments associated with this user.</p>
         </div>
         <div class="confirm-actions">
-          <button class="btn btn-secondary" id="cancel-delete">Cancel</button>
-          <button class="btn btn-danger" id="confirm-delete">Delete</button>
+          <button class="btn btn-secondary" id="cancel-user-delete">Cancel</button>
+          <button class="btn btn-danger" id="confirm-user-delete">Delete</button>
         </div>
       </div>
     `;
     
     document.body.appendChild(confirmModal);
     
-    // Show modal with animation
+    // Show modal
     confirmModal.style.display = 'block';
     confirmModal.style.opacity = '0';
     confirmModal.style.transform = 'scale(0.9)';
@@ -3167,8 +3241,8 @@ function loadAdminCategories() {
     confirmModal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
     
     // Add event listeners
-    const cancelBtn = confirmModal.querySelector('#cancel-delete');
-    const confirmBtn = confirmModal.querySelector('#confirm-delete');
+    const cancelBtn = confirmModal.querySelector('#cancel-user-delete');
+    const confirmBtn = confirmModal.querySelector('#confirm-user-delete');
     
     const closeModal = () => {
       confirmModal.style.opacity = '0';
@@ -3202,7 +3276,7 @@ function loadAdminCategories() {
         loadAdminUsers();
       })
       .catch(error => {
-        createNotification('Failed to delete user. Please try again.', 'error');
+        createNotification('Failed to delete user', 'error');
         console.error('User deletion error:', error);
       });
     });
@@ -3390,9 +3464,6 @@ function loadAdminCategories() {
   
   // Open course modal
   function openCourseModal(course = null) {
-    // Load categories for the dropdown
-    loadCategoriesForDropdown();
-    
     if (course) {
       if (modalTitle) modalTitle.textContent = 'Edit Course';
       if (courseIdInput) courseIdInput.value = course._id;
@@ -3403,8 +3474,8 @@ function loadAdminCategories() {
       if (document.getElementById('course-image-url')) {
         document.getElementById('course-image-url').value = course.imageUrl;
       }
-      if (document.getElementById('course-category')) {
-        document.getElementById('course-category').value = course.category || '';
+      if (document.getElementById('course-panel')) {
+        document.getElementById('course-panel').value = course.panel ? course.panel._id : '';
       }
       
       // Clear existing modules
@@ -3422,6 +3493,9 @@ function loadAdminCategories() {
       addModuleInput();
     }
     
+    // Load panels for dropdown
+    loadPanelsForDropdown();
+    
     // Show modal with animation
     if (courseModal) {
       courseModal.style.display = 'block';
@@ -3436,146 +3510,6 @@ function loadAdminCategories() {
       courseModal.style.transform = 'scale(1)';
       courseModal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
     }
-  }
-  
-  // Load categories for dropdown
-  function loadCategoriesForDropdown() {
-    if (!courseCategorySelect) return;
-    
-    // Clear existing options
-    courseCategorySelect.innerHTML = '<option value="">Select a category</option>';
-    
-    // Add categories to dropdown
-    allCategories.forEach(category => {
-      const option = document.createElement('option');
-      option.value = category._id;
-      option.textContent = category.name;
-      courseCategorySelect.appendChild(option);
-    });
-  }
-  
-  // Open category modal
-  function openCategoryModal(category = null) {
-    if (category) {
-      if (categoryModalTitle) categoryModalTitle.textContent = 'Edit Category';
-      if (categoryIdInput) categoryIdInput.value = category._id;
-      if (document.getElementById('category-name')) document.getElementById('category-name').value = category.name;
-      if (document.getElementById('category-description')) document.getElementById('category-description').value = category.description;
-    } else {
-      if (categoryModalTitle) categoryModalTitle.textContent = 'Add New Category';
-      if (categoryIdInput) categoryIdInput.value = '';
-      if (categoryForm) categoryForm.reset();
-    }
-    
-    // Show modal with animation
-    if (categoryModal) {
-      categoryModal.style.display = 'block';
-      categoryModal.style.opacity = '0';
-      categoryModal.style.transform = 'scale(0.9)';
-      
-      // Trigger reflow
-      categoryModal.offsetHeight;
-      
-      // Animate in
-      categoryModal.style.opacity = '1';
-      categoryModal.style.transform = 'scale(1)';
-      categoryModal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-    }
-  }
-  
-  // Edit category
-  function editCategory(categoryId) {
-    fetch(`${API_BASE_URL}/api/admin/categories/${categoryId}`, {
-      headers: {
-        'Authorization': `Bearer ${authToken}`
-      }
-    })
-    .then(response => response.json())
-    .then(category => {
-      openCategoryModal(category);
-    })
-    .catch(error => {
-      console.error('Error loading category:', error);
-      createNotification('Error loading category details', 'error');
-    });
-  }
-  
-  // Delete category
-  function deleteCategory(categoryId) {
-    // Create beautiful confirmation modal
-    const confirmModal = document.createElement('div');
-    confirmModal.className = 'confirm-modal modal';
-    confirmModal.innerHTML = `
-      <div class="modal-content">
-        <div class="confirm-header">
-          <i class="fas fa-exclamation-triangle"></i>
-          <h3>Confirm Deletion</h3>
-        </div>
-        <div class="confirm-body">
-          <p>Are you sure you want to delete this category? This action cannot be undone.</p>
-        </div>
-        <div class="confirm-actions">
-          <button class="btn btn-secondary" id="cancel-delete">Cancel</button>
-          <button class="btn btn-danger" id="confirm-delete">Delete</button>
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(confirmModal);
-    
-    // Show modal with animation
-    confirmModal.style.display = 'block';
-    confirmModal.style.opacity = '0';
-    confirmModal.style.transform = 'scale(0.9)';
-    
-    // Trigger reflow
-    confirmModal.offsetHeight;
-    
-    // Animate in
-    confirmModal.style.opacity = '1';
-    confirmModal.style.transform = 'scale(1)';
-    confirmModal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-    
-    // Add event listeners
-    const cancelBtn = confirmModal.querySelector('#cancel-delete');
-    const confirmBtn = confirmModal.querySelector('#confirm-delete');
-    
-    const closeModal = () => {
-      confirmModal.style.opacity = '0';
-      confirmModal.style.transform = 'scale(0.9)';
-      confirmModal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-      
-      setTimeout(() => {
-        confirmModal.remove();
-      }, 300);
-    };
-    
-    cancelBtn.addEventListener('click', closeModal);
-    
-    confirmBtn.addEventListener('click', () => {
-      closeModal();
-      
-      fetch(`${API_BASE_URL}/api/admin/categories/${categoryId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Category deletion failed');
-        }
-        return response.json();
-      })
-      .then(data => {
-        createNotification('Category deleted successfully!', 'success');
-        loadAdminCategories();
-      })
-      .catch(error => {
-        createNotification('Failed to delete category. Please try again.', 'error');
-        console.error('Category deletion error:', error);
-      });
-    });
   }
   
   // Add module input
@@ -3657,68 +3591,6 @@ function loadAdminCategories() {
     });
   }
   
-  // Handle category submit
-  function handleCategorySubmit(e) {
-    e.preventDefault();
-    
-    const name = document.getElementById('category-name').value;
-    const description = document.getElementById('category-description').value;
-    
-    // Show loading state
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-    submitBtn.disabled = true;
-    
-    const categoryId = categoryIdInput ? categoryIdInput.value : '';
-    const url = categoryId ? `${API_BASE_URL}/api/admin/categories/${categoryId}` : `${API_BASE_URL}/api/admin/categories`;
-    const method = categoryId ? 'PUT' : 'POST';
-    
-    fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`
-      },
-      body: JSON.stringify({ name, description })
-    })
-    .then(response => {
-      console.log('Response status:', response.status);
-      
-      if (!response.ok) {
-        return response.json().then(err => { 
-          console.error('Response error:', err);
-          throw err; 
-        });
-      }
-      return response.json();
-    })
-    .then(data => {
-      // Reset button
-      submitBtn.innerHTML = originalText;
-      submitBtn.disabled = false;
-      
-      // Show success notification
-      createNotification(`Category ${categoryId ? 'updated' : 'created'} successfully!`, 'success');
-      
-      // Close modal
-      categoryModal.style.display = 'none';
-      
-      // Reload categories
-      loadAdminCategories();
-    })
-    .catch(error => {
-      console.error('Category save error:', error);
-      
-      // Reset button
-      submitBtn.innerHTML = originalText;
-      submitBtn.disabled = false;
-      
-      // Show error notification
-      createNotification(`Failed to ${categoryId ? 'update' : 'create'} category: ${error.message}`, 'error');
-    });
-  }
-  
   // Handle course submit
   function handleCourseSubmit(e) {
     e.preventDefault();
@@ -3731,10 +3603,10 @@ function loadAdminCategories() {
     const instructorInput = form.querySelector('#course-instructor');
     const priceInput = form.querySelector('#course-price');
     const imageUrlInput = form.querySelector('#course-image-url');
-    const categoryInput = form.querySelector('#course-category');
+    const panelInput = form.querySelector('#course-panel');
     
     // Check if required inputs exist
-    if (!titleInput || !descriptionInput || !instructorInput || !priceInput || !imageUrlInput || !categoryInput) {
+    if (!titleInput || !descriptionInput || !instructorInput || !priceInput || !imageUrlInput || !panelInput) {
       createNotification('Form elements not found. Please refresh the page and try again.', 'error');
       console.error('Form elements missing:', {
         titleInput: !!titleInput,
@@ -3742,7 +3614,7 @@ function loadAdminCategories() {
         instructorInput: !!instructorInput,
         priceInput: !!priceInput,
         imageUrlInput: !!imageUrlInput,
-        categoryInput: !!categoryInput
+        panelInput: !!panelInput
       });
       return;
     }
@@ -3754,7 +3626,7 @@ function loadAdminCategories() {
     const instructor = instructorInput.value ? instructorInput.value.trim() : '';
     const price = priceInput.value ? parseFloat(priceInput.value) : 0;
     const imageUrl = imageUrlInput.value ? imageUrlInput.value.trim() : '';
-    const category = categoryInput.value ? categoryInput.value : '';
+    const panelId = panelInput.value ? panelInput.value.trim() : '';
     
     // Debug logging to see what values we're getting
     console.log('Form values:', {
@@ -3763,7 +3635,7 @@ function loadAdminCategories() {
       instructor: `"${instructor}"`,
       price: price,
       imageUrl: `"${imageUrl}"`,
-      category: `"${category}"`
+      panelId: `"${panelId}"`
     });
     
     // Validate required fields
@@ -3797,9 +3669,9 @@ function loadAdminCategories() {
       return;
     }
     
-    if (!category) {
-      createNotification('Please select a category', 'error');
-      categoryInput.focus();
+    if (!panelId) {
+      createNotification('Please select a panel', 'error');
+      panelInput.focus();
       return;
     }
     
@@ -3891,7 +3763,7 @@ function loadAdminCategories() {
       instructor,
       price,
       imageUrl: validatedImageUrl,
-      category,
+      panel: panelId,
       modules: JSON.stringify(modules)
     };
     
@@ -4038,6 +3910,8 @@ function loadAdminCategories() {
     });
   }
 
+  // -------------------------------------------------------------------------
+  // Mobile menu toggle functionality
   // Initialize the app
   init();
 });
