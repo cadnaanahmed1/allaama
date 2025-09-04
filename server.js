@@ -10,70 +10,16 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-// app.use(cors({
-//   origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
-//   credentials: true,
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization']
-// }));
-// Replace this line:
-// Enhanced CORS configuration
-// Add this after your middleware setup
-// Configure CORS to allow multiple origins
-// const whitelist = [
-//   'http://localhost:5500',
-//   'http://127.0.0.1:5500',
-//   'http://localhost:3000',
-//   'http://127.0.0.1:3000'
-// ];
-
-// const corsOptions = {
-//   origin: function (origin, callback) {
-//     if (whitelist.indexOf(origin) !== -1 || !origin) {
-//       return callback(null, true);
-//     } else {
-//       return callback(new Error('Not allowed by CORS'));
-//     }
-//   },
-//   credentials: true,
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization'],
-//   exposedHeaders: ['Content-Length', 'X-Requested-With'],
-//   optionsSuccessStatus: 200,
-//   maxAge: 86400 // 24 hours
-// };
-
-// app.use(cors(corsOptions));
-
-// // Add this pre-flight OPTIONS handler
-// app.options('*', cors(corsOptions));
-// Local whitelist
-const whitelist = [
-  'https://allaama-2.onrender.com',   // server-kaaga
-  'https://allaama.vercel.app'        // frontend-kaaga Vercel
-];
-
-const corsOptions = {
-  origin: function(origin, callback) {
-    if (!origin || whitelist.indexOf(origin) !== -1) {
-      return callback(null, true);
-    } else {
-      return callback(new Error('Not allowed by CORS'));
-    }
-  },
+app.use(cors({
+  origin: ['https://allaama-2.onrender.com', 'https://allaama.vercel.app'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Content-Length', 'X-Requested-With'],
-  optionsSuccessStatus: 200
-};
-
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
-
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(express.json());
 app.use(express.static(__dirname));
+
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
@@ -93,9 +39,11 @@ mongoose.connect(process.env.MONGODB_URI, {
 mongoose.connection.on('error', err => {
   console.error('MongoDB connection error:', err);
 });
+
 mongoose.connection.on('disconnected', () => {
   console.warn('MongoDB disconnected');
 });
+
 mongoose.connection.on('reconnected', () => {
   console.log('MongoDB reconnected');
 });
@@ -118,6 +66,11 @@ function validateImageUrl(url) {
 }
 
 // Define Schemas and Models
+const categorySchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  description: { type: String, required: true }
+});
+
 const courseSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
@@ -138,6 +91,11 @@ const courseSchema = new mongoose.Schema({
       },
       message: 'Invalid image URL format'
     }
+  },
+  category: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Category',
+    required: true
   },
   modules: [{
     title: { type: String, required: true },
@@ -170,6 +128,7 @@ const enrollmentSchema = new mongoose.Schema({
 // Create Models
 const User = mongoose.model('User', userSchema);
 const Course = mongoose.model('Course', courseSchema);
+const Category = mongoose.model('Category', categorySchema);
 const Enrollment = mongoose.model('Enrollment', enrollmentSchema);
 
 // Password reset storage (keeping this in memory as it's temporary)
@@ -285,10 +244,30 @@ async function initializeDefaultData() {
       console.log('Default student user created');
     }
     
+    // Check if default categories exist
+    const categoriesCount = await Category.countDocuments().maxTimeMS(5000);
+    
+    if (categoriesCount === 0) {
+      // Create default categories
+      const defaultCategories = [
+        { name: 'Web Development', description: 'Learn to build modern websites and web applications' },
+        { name: 'Graphic Design', description: 'Master the principles of design and visual communication' },
+        { name: 'Accounting', description: 'Understand financial principles and accounting practices' },
+        { name: 'Business', description: 'Develop essential business and entrepreneurial skills' },
+        { name: 'Marketing', description: 'Learn effective marketing strategies and techniques' }
+      ];
+      
+      await Category.insertMany(defaultCategories);
+      console.log('Default categories created');
+    }
+    
+    // Get the first category for default course
+    const firstCategory = await Category.findOne().maxTimeMS(5000);
+    
     // Check if course exists
     const courseExists = await Course.findOne({ title: 'Advanced Web Development' }).maxTimeMS(5000);
     
-    if (!courseExists) {
+    if (!courseExists && firstCategory) {
       // Create default course with explicit image URL
       const defaultCourse = new Course({
         title: "Advanced Web Development",
@@ -296,6 +275,7 @@ async function initializeDefaultData() {
         instructor: "Alex Johnson",
         price: 299,
         imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3",
+        category: firstCategory._id,
         modules: [
           {
             title: "HTML5 & CSS3 Fundamentals",
@@ -633,6 +613,54 @@ app.put('/api/admin/settings', authenticateToken, authorizeRole('admin'), async 
   }
 });
 
+// Student settings endpoint
+app.put('/api/student/settings', authenticateToken, authorizeRole('student'), async (req, res) => {
+  try {
+    const { username, currentPassword, newPassword } = req.body;
+    
+    // Find student user
+    const studentUser = await User.findById(req.user.id);
+    if (!studentUser || studentUser.role !== 'student') {
+      return res.status(404).json({ message: 'Student user not found' });
+    }
+    
+    // Verify current password
+    const isCurrentPasswordValid = bcrypt.compareSync(currentPassword, studentUser.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+    
+    // Check if username already exists (for other users)
+    if (username && username !== studentUser.name) {
+      const existingUser = await User.findOne({ 
+        name: username, 
+        _id: { $ne: studentUser._id } 
+      });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Username already exists' });
+      }
+    }
+    
+    // Update student settings
+    if (username) studentUser.name = username;
+    if (newPassword) studentUser.password = bcrypt.hashSync(newPassword, 10);
+    
+    await studentUser.save();
+    
+    res.json({ 
+      message: 'Settings updated successfully',
+      user: {
+        id: studentUser._id,
+        name: studentUser.name,
+        email: studentUser.email,
+        role: studentUser.role
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Public courses endpoint (for non-logged in users)
 app.get('/api/public/courses', async (req, res) => {
   try {
@@ -642,7 +670,7 @@ app.get('/api/public/courses', async (req, res) => {
       return res.json([]); // Return empty array instead of error
     }
     
-    const courses = await Course.find().maxTimeMS(5000);
+    const courses = await Course.find().populate('category').maxTimeMS(5000);
     res.json(courses);
   } catch (error) {
     console.error('Error loading public courses:', error);
@@ -657,10 +685,69 @@ app.get('/api/public/courses', async (req, res) => {
   }
 });
 
+// Public categories endpoint
+app.get('/api/public/categories', async (req, res) => {
+  try {
+    // Check if MongoDB is connected
+    if (mongoose.connection.readyState !== 1) {
+      console.log('MongoDB not connected, returning empty categories array');
+      return res.json([]); // Return empty array instead of error
+    }
+    
+    const categories = await Category.find().maxTimeMS(5000);
+    res.json(categories);
+  } catch (error) {
+    console.error('Error loading public categories:', error);
+    
+    // If MongoDB is not connected, return empty array
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoTimeoutError') {
+      console.log('MongoDB connection issue, returning empty categories array');
+      return res.json([]);
+    }
+    
+    res.status(500).json({ message: 'Failed to load categories' });
+  }
+});
+
+// Get single course for public access
+app.get('/api/public/courses/:id', async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id).populate('category');
+    
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+    
+    res.json(course);
+  } catch (error) {
+    console.error('Error loading course:', error);
+    res.status(500).json({ message: 'Failed to load course' });
+  }
+});
+
+// Check enrollment status
+app.get('/api/student/check-enrollment/:courseId', authenticateToken, async (req, res) => {
+  try {
+    const enrollment = await Enrollment.findOne({
+      userId: req.user.id,
+      courseId: req.params.courseId,
+      status: 'active'
+    });
+    
+    res.json({
+      enrolled: !!enrollment,
+      status: enrollment ? enrollment.status : 'none'
+    });
+  } catch (error) {
+    console.error('Error checking enrollment:', error);
+    res.status(500).json({ message: 'Failed to check enrollment status' });
+  }
+});
+
 // Admin Routes
 app.get('/api/admin/courses', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
-    const courses = await Course.find();
+    const courses = await Course.find().populate('category');
     res.json(courses);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -669,7 +756,7 @@ app.get('/api/admin/courses', authenticateToken, authorizeRole('admin'), async (
 
 app.get('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id);
+    const course = await Course.findById(req.params.id).populate('category');
     
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
@@ -684,15 +771,16 @@ app.get('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), asy
 // COURSE CREATION
 app.post('/api/admin/courses', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
-    const { title, description, modules, price, instructor, imageUrl } = req.body;
+    const { title, description, modules, price, instructor, imageUrl, category } = req.body;
     
     console.log('Course creation request:', req.body);
     console.log('Image URL received:', imageUrl);
+    console.log('Category received:', category);
     
     // Validate required fields
-    if (!title || !description || !instructor || price === undefined || price === null) {
+    if (!title || !description || !instructor || price === undefined || price === null || !category) {
       return res.status(400).json({ 
-        message: 'Title, description, instructor, and price are required fields.' 
+        message: 'Title, description, instructor, price, and category are required fields.' 
       });
     }
     
@@ -771,6 +859,7 @@ app.post('/api/admin/courses', authenticateToken, authorizeRole('admin'), async 
       instructor,
       price: Number(price),
       imageUrl: validatedImageUrl,
+      category,
       modules: processedModules
     });
     
@@ -781,7 +870,7 @@ app.post('/api/admin/courses', authenticateToken, authorizeRole('admin'), async 
     console.log('Course saved successfully:', newCourse);
     
     // Return the saved course with populated data
-    const savedCourse = await Course.findById(newCourse._id);
+    const savedCourse = await Course.findById(newCourse._id).populate('category');
     
     res.status(201).json({ 
       message: 'Course created successfully', 
@@ -798,10 +887,11 @@ app.post('/api/admin/courses', authenticateToken, authorizeRole('admin'), async 
 // COURSE UPDATE
 app.put('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
-    const { title, description, modules, price, instructor, imageUrl } = req.body;
+    const { title, description, modules, price, instructor, imageUrl, category } = req.body;
     
     console.log('Course update request:', req.body);
     console.log('Image URL received:', imageUrl);
+    console.log('Category received:', category);
     
     // Find the course first
     const course = await Course.findById(req.params.id);
@@ -811,9 +901,9 @@ app.put('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), asy
     }
     
     // Validate required fields
-    if (!title || !description || !instructor || price === undefined || price === null) {
+    if (!title || !description || !instructor || price === undefined || price === null || !category) {
       return res.status(400).json({ 
-        message: 'Title, description, instructor, and price are required fields.' 
+        message: 'Title, description, instructor, price, and category are required fields.' 
       });
     }
     
@@ -891,6 +981,7 @@ app.put('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), asy
     course.instructor = instructor;
     course.price = Number(price);
     course.imageUrl = validatedImageUrl;
+    course.category = category;
     course.modules = processedModules;
     
     console.log('Course object before save:', course);
@@ -900,9 +991,11 @@ app.put('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), asy
     console.log('Course updated successfully:', course);
     
     // Return the updated course
+    const updatedCourse = await Course.findById(course._id).populate('category');
+    
     res.json({ 
       message: 'Course updated successfully', 
-      course: course 
+      course: updatedCourse 
     });
   } catch (error) {
     console.error('Error updating course:', error);
@@ -923,6 +1016,128 @@ app.delete('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), 
     await Course.findByIdAndDelete(req.params.id);
     
     res.json({ message: 'Course deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Category Routes
+app.get('/api/admin/categories', authenticateToken, authorizeRole('admin'), async (req, res) => {
+  try {
+    const categories = await Category.find();
+    res.json(categories);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.post('/api/admin/categories', authenticateToken, authorizeRole('admin'), async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    
+    // Validate required fields
+    if (!name || !description) {
+      return res.status(400).json({ 
+        message: 'Name and description are required fields.' 
+      });
+    }
+    
+    // Check if category with the same name already exists
+    const existingCategory = await Category.findOne({ name });
+    if (existingCategory) {
+      return res.status(400).json({ 
+        message: 'A category with this name already exists.' 
+      });
+    }
+    
+    // Create new category
+    const newCategory = new Category({
+      name,
+      description
+    });
+    
+    await newCategory.save();
+    
+    res.status(201).json({ 
+      message: 'Category created successfully', 
+      category: newCategory 
+    });
+  } catch (error) {
+    console.error('Error creating category:', error);
+    res.status(500).json({ 
+      message: 'Failed to create category: ' + error.message 
+    });
+  }
+});
+
+app.put('/api/admin/categories/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    
+    // Find the category first
+    const category = await Category.findById(req.params.id);
+    
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+    
+    // Validate required fields
+    if (!name || !description) {
+      return res.status(400).json({ 
+        message: 'Name and description are required fields.' 
+      });
+    }
+    
+    // Check if another category with the same name already exists
+    if (name !== category.name) {
+      const existingCategory = await Category.findOne({ 
+        name, 
+        _id: { $ne: category._id } 
+      });
+      if (existingCategory) {
+        return res.status(400).json({ 
+          message: 'A category with this name already exists.' 
+        });
+      }
+    }
+    
+    // Update category fields
+    category.name = name;
+    category.description = description;
+    
+    await category.save();
+    
+    res.json({ 
+      message: 'Category updated successfully', 
+      category: category 
+    });
+  } catch (error) {
+    console.error('Error updating category:', error);
+    res.status(500).json({ 
+      message: 'Failed to update category: ' + error.message 
+    });
+  }
+});
+
+app.delete('/api/admin/categories/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+    
+    // Check if there are courses using this category
+    const coursesWithCategory = await Course.countDocuments({ category: req.params.id });
+    if (coursesWithCategory > 0) {
+      return res.status(400).json({ 
+        message: 'Cannot delete category. There are courses using this category.' 
+      });
+    }
+    
+    await Category.findByIdAndDelete(req.params.id);
+    
+    res.json({ message: 'Category deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -960,6 +1175,13 @@ app.put('/api/admin/enrollments/:id', authenticateToken, authorizeRole('admin'),
     
     // Update status
     enrollment.status = status;
+    
+    // If status is completed, set progress to 100 and issue certificate
+    if (status === 'completed') {
+      enrollment.progress = 100;
+      enrollment.certificateIssued = true;
+    }
+    
     await enrollment.save();
     
     // Return updated enrollment with populated data
@@ -979,8 +1201,34 @@ app.put('/api/admin/enrollments/:id', authenticateToken, authorizeRole('admin'),
 
 app.get('/api/admin/users', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
-    const students = await User.find({ role: 'student' });
-    res.json(students);
+    const users = await User.find();
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Delete user
+app.delete('/api/admin/users/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Don't allow deleting admin users
+    if (user.role === 'admin') {
+      return res.status(400).json({ message: 'Cannot delete admin users' });
+    }
+    
+    // Delete all enrollments for this user
+    await Enrollment.deleteMany({ userId: req.params.id });
+    
+    // Delete the user
+    await User.findByIdAndDelete(req.params.id);
+    
+    res.json({ message: 'User deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -1012,7 +1260,7 @@ app.get('/api/student/courses', authenticateToken, async (req, res) => {
       return res.json([]); // Return empty array instead of error
     }
     
-    const courses = await Course.find().maxTimeMS(5000);
+    const courses = await Course.find().populate('category').maxTimeMS(5000);
     res.json(courses);
   } catch (error) {
     console.error('Error loading student courses:', error);
@@ -1129,7 +1377,7 @@ app.get('/api/student/course/:courseId', authenticateToken, async (req, res) => 
   try {
     const courseId = req.params.courseId;
     
-    const course = await Course.findById(courseId);
+    const course = await Course.findById(courseId).populate('category');
     
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
@@ -1180,13 +1428,9 @@ app.put('/api/student/progress/:enrollmentId', authenticateToken, async (req, re
 });
 
 // Serve frontend
-// app.get('*', (req, res) => {
-//   res.sendFile(path.join(__dirname, 'public', 'index.html'));
-// });
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
-
 
 // Start server
 app.listen(PORT, () => {
