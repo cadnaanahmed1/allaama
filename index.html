@@ -26,7 +26,8 @@
           <li><a href="#" id="courses-link">Courses</a></li>
           <li><a href="#" id="dashboard-link" style="display: none;">Dashboard</a></li>
           <li><a href="#" id="admin-link" style="display: none;">Admin</a></li>
-          <li><a href="#" id="admin-settings-link" style="display: none;">Settings</a></li>
+          <li><a href="#" id="student-settings-link" style="display: none;">Settings</a></li>
+          <li><a href="#" id="admin-settings-link" style="display: none;">Admin Settings</a></li>
           <li><a href="#" id="about-link">About</a></li>
           <li><a href="#" id="contact-link">Contact</a></li>
           <li><a href="#" id="login-link">Login</a></li>
@@ -181,8 +182,18 @@
     <section id="courses-section" class="courses" style="display: none;">
       <div class="container">
         <h2 class="section-title">Available Courses</h2>
-        <div class="course-grid" id="course-container">
-          <!-- Courses will be dynamically loaded here -->
+        
+        <!-- Search bar -->
+        <div class="search-container">
+          <div class="search-bar">
+            <input type="text" id="course-search" placeholder="Search courses...">
+            <button id="search-button"><i class="fas fa-search"></i></button>
+          </div>
+        </div>
+        
+        <!-- Panels container -->
+        <div id="panels-container">
+          <!-- Panels with courses will be dynamically loaded here -->
         </div>
       </div>
     </section>
@@ -201,6 +212,47 @@
             <div class="enrollment-grid" id="enrollment-container">
               <!-- Enrollments will be dynamically loaded here -->
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Student Settings Section -->
+    <section id="student-settings-section" class="student-settings" style="display: none;">
+      <div class="container">
+        <div class="settings-container">
+          <h2 class="section-title">Student Settings</h2>
+          <div class="settings-card">
+            <form id="student-settings-form">
+              <div class="form-group">
+                <label for="student-settings-username">Username</label>
+                <input type="text" id="student-settings-username" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="student-settings-email">Email</label>
+                <input type="email" id="student-settings-email" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="student-settings-current-password">Current Password</label>
+                <input type="password" id="student-settings-current-password" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="student-settings-new-password">New Password (optional)</label>
+                <input type="password" id="student-settings-new-password">
+              </div>
+              
+              <div class="form-group">
+                <label for="student-settings-confirm-password">Confirm New Password</label>
+                <input type="password" id="student-settings-confirm-password">
+              </div>
+              
+              <button type="submit" class="cta-button">Update Settings</button>
+            </form>
+            
+            <div id="student-settings-message" class="message"></div>
           </div>
         </div>
       </div>
@@ -229,6 +281,7 @@
           <button class="tab-btn active" data-tab="courses">Courses</button>
           <button class="tab-btn" data-tab="enrollments">Enrollments</button>
           <button class="tab-btn" data-tab="users">Users</button>
+          <button class="tab-btn" data-tab="panels">Panels</button>
         </div>
         
         <!-- Courses Tab -->
@@ -276,7 +329,7 @@
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
-                  <th>Enrollments</th>
+                  <th>Role</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -284,6 +337,17 @@
                 <!-- Users will be dynamically loaded here -->
               </tbody>
             </table>
+          </div>
+        </div>
+        
+        <!-- Panels Tab -->
+        <div class="tab-content" id="panels-tab">
+          <div class="tab-header">
+            <h3>Panel Management</h3>
+            <button id="add-panel-btn" class="cta-button">Add New Panel</button>
+          </div>
+          <div class="panel-grid" id="admin-panel-container">
+            <!-- Panels will be dynamically loaded here -->
           </div>
         </div>
       </div>
@@ -330,6 +394,40 @@
       </div>
     </section>
     
+    <!-- Shared Course Section -->
+    <section id="shared-course-section" class="shared-course" style="display: none;">
+      <div class="container">
+        <div class="course-header">
+          <h2 id="shared-course-title">Course Title</h2>
+          <p id="shared-course-instructor">Instructor Name</p>
+          <div id="shared-course-panel" class="course-panel"></div>
+        </div>
+        
+        <div class="course-content">
+          <div class="course-image" id="shared-course-image">
+            <!-- Course image will be loaded here -->
+          </div>
+          
+          <div class="course-details">
+            <p id="shared-course-description">Course description</p>
+            <div class="course-meta">
+              <div class="course-price" id="shared-course-price">
+                <i class="fas fa-dollar-sign"></i> Price
+              </div>
+            </div>
+            
+            <div class="course-access" id="shared-course-access">
+              <!-- Access control will be handled here -->
+            </div>
+          </div>
+        </div>
+        
+        <div class="course-modules" id="shared-course-modules-container">
+          <!-- Course modules with videos will be loaded here -->
+        </div>
+      </div>
+    </section>
+    
     <!-- Add/Edit Course Modal -->
     <div id="course-modal" class="modal">
       <div class="modal-content">
@@ -359,6 +457,13 @@
             <small class="form-text text-muted">Enter a valid URL for the course image (e.g., https://example.com/image.jpg)</small>
           </div>
           <div class="form-group">
+            <label for="course-panel">Panel</label>
+            <select id="course-panel" required>
+              <option value="">Select a panel</option>
+              <!-- Panels will be dynamically loaded here -->
+            </select>
+          </div>
+          <div class="form-group">
             <label>Modules</label>
             <div id="modules-container">
               <div class="module-input">
@@ -370,6 +475,30 @@
             <button type="button" id="add-module-btn">Add Module</button>
           </div>
           <button type="submit" class="cta-button">Save Course</button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Add/Edit Panel Modal -->
+    <div id="panel-modal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2 id="panel-modal-title">Add New Panel</h2>
+        <form id="panel-form">
+          <input type="hidden" id="panel-id">
+          <div class="form-group">
+            <label for="panel-name">Panel Name</label>
+            <input type="text" id="panel-name" required>
+          </div>
+          <div class="form-group">
+            <label for="panel-description">Description</label>
+            <textarea id="panel-description" rows="4"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="panel-color">Color</label>
+            <input type="color" id="panel-color" value="#3498db">
+          </div>
+          <button type="submit" class="cta-button">Save Panel</button>
         </form>
       </div>
     </div>
@@ -438,6 +567,46 @@
         <div class="modal-actions">
           <button id="cancel-enrollment" class="btn-secondary">Cancel</button>
           <button id="confirm-enrollment-btn" class="cta-button">Confirm Enrollment</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Share Course Modal -->
+    <div id="share-course-modal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2><i class="fas fa-share-alt"></i> Share Course</h2>
+        <div class="share-options">
+          <div class="share-url-container">
+            <label for="share-url">Shareable Link:</label>
+            <div class="share-url-input">
+              <input type="text" id="share-url" value="" readonly>
+              <button id="copy-url-btn" class="btn btn-primary">
+                <i class="fas fa-copy"></i> Copy
+              </button>
+            </div>
+          </div>
+          
+          <div class="share-buttons">
+            <h3>Share via:</h3>
+            <div class="share-platforms">
+              <button class="share-platform-btn" data-platform="facebook">
+                <i class="fab fa-facebook"></i> Facebook
+              </button>
+              <button class="share-platform-btn" data-platform="twitter">
+                <i class="fab fa-twitter"></i> Twitter
+              </button>
+              <button class="share-platform-btn" data-platform="linkedin">
+                <i class="fab fa-linkedin"></i> LinkedIn
+              </button>
+              <button class="share-platform-btn" data-platform="whatsapp">
+                <i class="fab fa-whatsapp"></i> WhatsApp
+              </button>
+              <button class="share-platform-btn" data-platform="email">
+                <i class="fas fa-envelope"></i> Email
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
