@@ -16,7 +16,6 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
 app.use(express.json());
 app.use(express.static(__dirname));
 
@@ -39,11 +38,9 @@ mongoose.connect(process.env.MONGODB_URI, {
 mongoose.connection.on('error', err => {
   console.error('MongoDB connection error:', err);
 });
-
 mongoose.connection.on('disconnected', () => {
   console.warn('MongoDB disconnected');
 });
-
 mongoose.connection.on('reconnected', () => {
   console.log('MongoDB reconnected');
 });
@@ -66,9 +63,9 @@ function validateImageUrl(url) {
 }
 
 // Define Schemas and Models
-const categorySchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  description: { type: String, required: true }
+const panelSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  description: { type: String }
 });
 
 const courseSchema = new mongoose.Schema({
@@ -92,11 +89,7 @@ const courseSchema = new mongoose.Schema({
       message: 'Invalid image URL format'
     }
   },
-  category: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Category',
-    required: true
-  },
+  panel: { type: mongoose.Schema.Types.ObjectId, ref: 'Panel', required: true },
   modules: [{
     title: { type: String, required: true },
     duration: { type: String, required: true },
@@ -128,7 +121,7 @@ const enrollmentSchema = new mongoose.Schema({
 // Create Models
 const User = mongoose.model('User', userSchema);
 const Course = mongoose.model('Course', courseSchema);
-const Category = mongoose.model('Category', categorySchema);
+const Panel = mongoose.model('Panel', panelSchema);
 const Enrollment = mongoose.model('Enrollment', enrollmentSchema);
 
 // Password reset storage (keeping this in memory as it's temporary)
@@ -244,30 +237,36 @@ async function initializeDefaultData() {
       console.log('Default student user created');
     }
     
-    // Check if default categories exist
-    const categoriesCount = await Category.countDocuments().maxTimeMS(5000);
-    
-    if (categoriesCount === 0) {
-      // Create default categories
-      const defaultCategories = [
-        { name: 'Web Development', description: 'Learn to build modern websites and web applications' },
-        { name: 'Graphic Design', description: 'Master the principles of design and visual communication' },
-        { name: 'Accounting', description: 'Understand financial principles and accounting practices' },
-        { name: 'Business', description: 'Develop essential business and entrepreneurial skills' },
-        { name: 'Marketing', description: 'Learn effective marketing strategies and techniques' }
-      ];
-      
-      await Category.insertMany(defaultCategories);
-      console.log('Default categories created');
+    // Check if default panels exist
+    const accountingPanel = await Panel.findOne({ name: 'Accounting' });
+    if (!accountingPanel) {
+      await new Panel({ name: 'Accounting', description: 'Accounting and Finance courses' }).save();
+      console.log('Default Accounting panel created');
     }
     
-    // Get the first category for default course
-    const firstCategory = await Category.findOne().maxTimeMS(5000);
+    const graphicDesignPanel = await Panel.findOne({ name: 'Graphic Design' });
+    if (!graphicDesignPanel) {
+      await new Panel({ name: 'Graphic Design', description: 'Graphic Design and Multimedia courses' }).save();
+      console.log('Default Graphic Design panel created');
+    }
+    
+    const webDevPanel = await Panel.findOne({ name: 'Web Development' });
+    if (!webDevPanel) {
+      await new Panel({ name: 'Web Development', description: 'Web Development and Programming courses' }).save();
+      console.log('Default Web Development panel created');
+    }
+    
+    // Get panel IDs
+    const panels = await Panel.find();
+    const panelMap = {};
+    panels.forEach(panel => {
+      panelMap[panel.name] = panel._id;
+    });
     
     // Check if course exists
     const courseExists = await Course.findOne({ title: 'Advanced Web Development' }).maxTimeMS(5000);
     
-    if (!courseExists && firstCategory) {
+    if (!courseExists) {
       // Create default course with explicit image URL
       const defaultCourse = new Course({
         title: "Advanced Web Development",
@@ -275,7 +274,7 @@ async function initializeDefaultData() {
         instructor: "Alex Johnson",
         price: 299,
         imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3",
-        category: firstCategory._id,
+        panel: panelMap['Web Development'],
         modules: [
           {
             title: "HTML5 & CSS3 Fundamentals",
@@ -614,9 +613,9 @@ app.put('/api/admin/settings', authenticateToken, authorizeRole('admin'), async 
 });
 
 // Student settings endpoint
-app.put('/api/student/settings', authenticateToken, authorizeRole('student'), async (req, res) => {
+app.put('/api/student/settings', authenticateToken, async (req, res) => {
   try {
-    const { username, currentPassword, newPassword } = req.body;
+    const { username, email, currentPassword, newPassword } = req.body;
     
     // Find student user
     const studentUser = await User.findById(req.user.id);
@@ -630,7 +629,7 @@ app.put('/api/student/settings', authenticateToken, authorizeRole('student'), as
       return res.status(400).json({ message: 'Current password is incorrect' });
     }
     
-    // Check if username already exists (for other users)
+    // Check if username or email already exists (for other users)
     if (username && username !== studentUser.name) {
       const existingUser = await User.findOne({ 
         name: username, 
@@ -641,8 +640,19 @@ app.put('/api/student/settings', authenticateToken, authorizeRole('student'), as
       }
     }
     
+    if (email && email !== studentUser.email) {
+      const existingUser = await User.findOne({ 
+        email: email, 
+        _id: { $ne: studentUser._id } 
+      });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email already exists' });
+      }
+    }
+    
     // Update student settings
     if (username) studentUser.name = username;
+    if (email) studentUser.email = email;
     if (newPassword) studentUser.password = bcrypt.hashSync(newPassword, 10);
     
     await studentUser.save();
@@ -670,7 +680,7 @@ app.get('/api/public/courses', async (req, res) => {
       return res.json([]); // Return empty array instead of error
     }
     
-    const courses = await Course.find().populate('category').maxTimeMS(5000);
+    const courses = await Course.find().populate('panel', 'name').maxTimeMS(5000);
     res.json(courses);
   } catch (error) {
     console.error('Error loading public courses:', error);
@@ -685,69 +695,177 @@ app.get('/api/public/courses', async (req, res) => {
   }
 });
 
-// Public categories endpoint
-app.get('/api/public/categories', async (req, res) => {
+// Course search endpoint with fuzzy matching
+app.get('/api/courses/search', async (req, res) => {
   try {
-    // Check if MongoDB is connected
-    if (mongoose.connection.readyState !== 1) {
-      console.log('MongoDB not connected, returning empty categories array');
-      return res.json([]); // Return empty array instead of error
+    const { query } = req.query;
+    
+    if (!query) {
+      return res.status(400).json({ message: 'Search query is required' });
     }
     
-    const categories = await Category.find().maxTimeMS(5000);
-    res.json(categories);
+    // Use regex for fuzzy matching (case insensitive, partial match)
+    const regex = new RegExp(query, 'i');
+    
+    const courses = await Course.find({
+      $or: [
+        { title: regex },
+        { description: regex },
+        { instructor: regex }
+      ]
+    }).populate('panel', 'name');
+    
+    res.json(courses);
   } catch (error) {
-    console.error('Error loading public categories:', error);
-    
-    // If MongoDB is not connected, return empty array
-    if (error.name === 'MongoNetworkError' || error.name === 'MongoTimeoutError') {
-      console.log('MongoDB connection issue, returning empty categories array');
-      return res.json([]);
-    }
-    
-    res.status(500).json({ message: 'Failed to load categories' });
+    console.error('Error searching courses:', error);
+    res.status(500).json({ message: 'Failed to search courses' });
   }
 });
 
-// Get single course for public access
-app.get('/api/public/courses/:id', async (req, res) => {
+// Get course by ID for sharing
+app.get('/api/course/:id', async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id).populate('category');
+    const course = await Course.findById(req.params.id).populate('panel', 'name');
     
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
     
-    res.json(course);
+    // Check if user is authenticated
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+        const user = await User.findById(decoded.id);
+        
+        if (user) {
+          // Check if user is enrolled in this course
+          const enrollment = await Enrollment.findOne({
+            userId: user._id,
+            courseId: course._id,
+            status: 'active'
+          });
+          
+          // If enrolled, return full course details
+          if (enrollment) {
+            return res.json({ course, hasAccess: true });
+          }
+        }
+      } catch (err) {
+        // Token invalid, continue as anonymous
+      }
+    }
+    
+    // If not authenticated or not enrolled, return basic course info
+    res.json({ 
+      course: {
+        _id: course._id,
+        title: course.title,
+        description: course.description,
+        instructor: course.instructor,
+        price: course.price,
+        imageUrl: course.imageUrl,
+        panel: course.panel
+      }, 
+      hasAccess: false 
+    });
   } catch (error) {
-    console.error('Error loading course:', error);
-    res.status(500).json({ message: 'Failed to load course' });
+    res.status(500).json({ message: error.message });
   }
 });
 
-// Check enrollment status
-app.get('/api/student/check-enrollment/:courseId', authenticateToken, async (req, res) => {
+// Panel endpoints
+app.get('/api/panels', async (req, res) => {
   try {
-    const enrollment = await Enrollment.findOne({
-      userId: req.user.id,
-      courseId: req.params.courseId,
-      status: 'active'
-    });
+    const panels = await Panel.find();
+    res.json(panels);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.post('/api/panels', authenticateToken, authorizeRole('admin'), async (req, res) => {
+  try {
+    const { name, description } = req.body;
     
-    res.json({
-      enrolled: !!enrollment,
-      status: enrollment ? enrollment.status : 'none'
+    const existingPanel = await Panel.findOne({ name });
+    if (existingPanel) {
+      return res.status(400).json({ message: 'Panel already exists' });
+    }
+    
+    const newPanel = new Panel({ name, description });
+    await newPanel.save();
+    
+    res.status(201).json({ message: 'Panel created successfully', panel: newPanel });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.put('/api/panels/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    
+    const panel = await Panel.findById(req.params.id);
+    
+    if (!panel) {
+      return res.status(404).json({ message: 'Panel not found' });
+    }
+    
+    // Check if name already exists (for other panels)
+    if (name && name !== panel.name) {
+      const existingPanel = await Panel.findOne({ 
+        name, 
+        _id: { $ne: panel._id } 
+      });
+      if (existingPanel) {
+        return res.status(400).json({ message: 'Panel name already exists' });
+      }
+    }
+    
+    // Update panel
+    if (name) panel.name = name;
+    if (description) panel.description = description;
+    
+    await panel.save();
+    
+    res.json({ 
+      message: 'Panel updated successfully', 
+      panel: panel 
     });
   } catch (error) {
-    console.error('Error checking enrollment:', error);
-    res.status(500).json({ message: 'Failed to check enrollment status' });
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.delete('/api/panels/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
+  try {
+    const panel = await Panel.findById(req.params.id);
+    
+    if (!panel) {
+      return res.status(404).json({ message: 'Panel not found' });
+    }
+    
+    // Check if there are courses using this panel
+    const coursesUsingPanel = await Course.countDocuments({ panel: req.params.id });
+    if (coursesUsingPanel > 0) {
+      return res.status(400).json({ 
+        message: 'Cannot delete panel. There are courses associated with this panel.' 
+      });
+    }
+    
+    await Panel.findByIdAndDelete(req.params.id);
+    
+    res.json({ message: 'Panel deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 
 // Admin Routes
 app.get('/api/admin/courses', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
-    const courses = await Course.find().populate('category');
+    const courses = await Course.find().populate('panel', 'name');
     res.json(courses);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -756,7 +874,7 @@ app.get('/api/admin/courses', authenticateToken, authorizeRole('admin'), async (
 
 app.get('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id).populate('category');
+    const course = await Course.findById(req.params.id).populate('panel', 'name');
     
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
@@ -771,16 +889,16 @@ app.get('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), asy
 // COURSE CREATION
 app.post('/api/admin/courses', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
-    const { title, description, modules, price, instructor, imageUrl, category } = req.body;
+    const { title, description, modules, price, instructor, imageUrl, panel } = req.body;
     
     console.log('Course creation request:', req.body);
     console.log('Image URL received:', imageUrl);
-    console.log('Category received:', category);
+    console.log('Panel ID received:', panel);
     
     // Validate required fields
-    if (!title || !description || !instructor || price === undefined || price === null || !category) {
+    if (!title || !description || !instructor || price === undefined || price === null || !panel) {
       return res.status(400).json({ 
-        message: 'Title, description, instructor, price, and category are required fields.' 
+        message: 'Title, description, instructor, price, and panel are required fields.' 
       });
     }
     
@@ -796,6 +914,14 @@ app.post('/api/admin/courses', authenticateToken, authorizeRole('admin'), async 
     if (!validatedImageUrl) {
       return res.status(400).json({ 
         message: 'Invalid image URL format.' 
+      });
+    }
+    
+    // Validate panel exists
+    const panelExists = await Panel.findById(panel);
+    if (!panelExists) {
+      return res.status(400).json({ 
+        message: 'Selected panel does not exist.' 
       });
     }
     
@@ -852,14 +978,14 @@ app.post('/api/admin/courses', authenticateToken, authorizeRole('admin'), async 
     
     console.log('Processed modules:', processedModules);
     
-    // Create course with validated image URL
+    // Create course with validated image URL and panel
     const newCourse = new Course({
       title,
       description,
       instructor,
       price: Number(price),
       imageUrl: validatedImageUrl,
-      category,
+      panel: panel,
       modules: processedModules
     });
     
@@ -870,7 +996,7 @@ app.post('/api/admin/courses', authenticateToken, authorizeRole('admin'), async 
     console.log('Course saved successfully:', newCourse);
     
     // Return the saved course with populated data
-    const savedCourse = await Course.findById(newCourse._id).populate('category');
+    const savedCourse = await Course.findById(newCourse._id).populate('panel', 'name');
     
     res.status(201).json({ 
       message: 'Course created successfully', 
@@ -887,11 +1013,11 @@ app.post('/api/admin/courses', authenticateToken, authorizeRole('admin'), async 
 // COURSE UPDATE
 app.put('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
-    const { title, description, modules, price, instructor, imageUrl, category } = req.body;
+    const { title, description, modules, price, instructor, imageUrl, panel } = req.body;
     
     console.log('Course update request:', req.body);
     console.log('Image URL received:', imageUrl);
-    console.log('Category received:', category);
+    console.log('Panel ID received:', panel);
     
     // Find the course first
     const course = await Course.findById(req.params.id);
@@ -901,9 +1027,9 @@ app.put('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), asy
     }
     
     // Validate required fields
-    if (!title || !description || !instructor || price === undefined || price === null || !category) {
+    if (!title || !description || !instructor || price === undefined || price === null || !panel) {
       return res.status(400).json({ 
-        message: 'Title, description, instructor, price, and category are required fields.' 
+        message: 'Title, description, instructor, price, and panel are required fields.' 
       });
     }
     
@@ -919,6 +1045,14 @@ app.put('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), asy
     if (!validatedImageUrl) {
       return res.status(400).json({ 
         message: 'Invalid image URL format.' 
+      });
+    }
+    
+    // Validate panel exists
+    const panelExists = await Panel.findById(panel);
+    if (!panelExists) {
+      return res.status(400).json({ 
+        message: 'Selected panel does not exist.' 
       });
     }
     
@@ -975,13 +1109,13 @@ app.put('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), asy
     
     console.log('Processed modules:', processedModules);
     
-    // Update course fields with validated image URL
+    // Update course fields with validated image URL and panel
     course.title = title;
     course.description = description;
     course.instructor = instructor;
     course.price = Number(price);
     course.imageUrl = validatedImageUrl;
-    course.category = category;
+    course.panel = panel;
     course.modules = processedModules;
     
     console.log('Course object before save:', course);
@@ -991,7 +1125,7 @@ app.put('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), asy
     console.log('Course updated successfully:', course);
     
     // Return the updated course
-    const updatedCourse = await Course.findById(course._id).populate('category');
+    const updatedCourse = await Course.findById(course._id).populate('panel', 'name');
     
     res.json({ 
       message: 'Course updated successfully', 
@@ -1016,128 +1150,6 @@ app.delete('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), 
     await Course.findByIdAndDelete(req.params.id);
     
     res.json({ message: 'Course deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Category Routes
-app.get('/api/admin/categories', authenticateToken, authorizeRole('admin'), async (req, res) => {
-  try {
-    const categories = await Category.find();
-    res.json(categories);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-app.post('/api/admin/categories', authenticateToken, authorizeRole('admin'), async (req, res) => {
-  try {
-    const { name, description } = req.body;
-    
-    // Validate required fields
-    if (!name || !description) {
-      return res.status(400).json({ 
-        message: 'Name and description are required fields.' 
-      });
-    }
-    
-    // Check if category with the same name already exists
-    const existingCategory = await Category.findOne({ name });
-    if (existingCategory) {
-      return res.status(400).json({ 
-        message: 'A category with this name already exists.' 
-      });
-    }
-    
-    // Create new category
-    const newCategory = new Category({
-      name,
-      description
-    });
-    
-    await newCategory.save();
-    
-    res.status(201).json({ 
-      message: 'Category created successfully', 
-      category: newCategory 
-    });
-  } catch (error) {
-    console.error('Error creating category:', error);
-    res.status(500).json({ 
-      message: 'Failed to create category: ' + error.message 
-    });
-  }
-});
-
-app.put('/api/admin/categories/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
-  try {
-    const { name, description } = req.body;
-    
-    // Find the category first
-    const category = await Category.findById(req.params.id);
-    
-    if (!category) {
-      return res.status(404).json({ message: 'Category not found' });
-    }
-    
-    // Validate required fields
-    if (!name || !description) {
-      return res.status(400).json({ 
-        message: 'Name and description are required fields.' 
-      });
-    }
-    
-    // Check if another category with the same name already exists
-    if (name !== category.name) {
-      const existingCategory = await Category.findOne({ 
-        name, 
-        _id: { $ne: category._id } 
-      });
-      if (existingCategory) {
-        return res.status(400).json({ 
-          message: 'A category with this name already exists.' 
-        });
-      }
-    }
-    
-    // Update category fields
-    category.name = name;
-    category.description = description;
-    
-    await category.save();
-    
-    res.json({ 
-      message: 'Category updated successfully', 
-      category: category 
-    });
-  } catch (error) {
-    console.error('Error updating category:', error);
-    res.status(500).json({ 
-      message: 'Failed to update category: ' + error.message 
-    });
-  }
-});
-
-app.delete('/api/admin/categories/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
-  try {
-    const category = await Category.findById(req.params.id);
-    
-    if (!category) {
-      return res.status(404).json({ message: 'Category not found' });
-    }
-    
-    // Check if there are courses using this category
-    const coursesWithCategory = await Course.countDocuments({ category: req.params.id });
-    if (coursesWithCategory > 0) {
-      return res.status(400).json({ 
-        message: 'Cannot delete category. There are courses using this category.' 
-      });
-    }
-    
-    await Category.findByIdAndDelete(req.params.id);
-    
-    res.json({ message: 'Category deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -1175,13 +1187,6 @@ app.put('/api/admin/enrollments/:id', authenticateToken, authorizeRole('admin'),
     
     // Update status
     enrollment.status = status;
-    
-    // If status is completed, set progress to 100 and issue certificate
-    if (status === 'completed') {
-      enrollment.progress = 100;
-      enrollment.certificateIssued = true;
-    }
-    
     await enrollment.save();
     
     // Return updated enrollment with populated data
@@ -1201,34 +1206,8 @@ app.put('/api/admin/enrollments/:id', authenticateToken, authorizeRole('admin'),
 
 app.get('/api/admin/users', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
-    const users = await User.find();
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Delete user
-app.delete('/api/admin/users/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    // Don't allow deleting admin users
-    if (user.role === 'admin') {
-      return res.status(400).json({ message: 'Cannot delete admin users' });
-    }
-    
-    // Delete all enrollments for this user
-    await Enrollment.deleteMany({ userId: req.params.id });
-    
-    // Delete the user
-    await User.findByIdAndDelete(req.params.id);
-    
-    res.json({ message: 'User deleted successfully' });
+    const students = await User.find({ role: 'student' });
+    res.json(students);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -1251,6 +1230,26 @@ app.get('/api/admin/users/:id', authenticateToken, authorizeRole('admin'), async
   }
 });
 
+// Delete user endpoint
+app.delete('/api/admin/users/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Also delete any enrollments for this user
+    await Enrollment.deleteMany({ userId: req.params.id });
+    
+    await User.findByIdAndDelete(req.params.id);
+    
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Student Routes
 app.get('/api/student/courses', authenticateToken, async (req, res) => {
   try {
@@ -1260,7 +1259,7 @@ app.get('/api/student/courses', authenticateToken, async (req, res) => {
       return res.json([]); // Return empty array instead of error
     }
     
-    const courses = await Course.find().populate('category').maxTimeMS(5000);
+    const courses = await Course.find().populate('panel', 'name').maxTimeMS(5000);
     res.json(courses);
   } catch (error) {
     console.error('Error loading student courses:', error);
@@ -1377,7 +1376,7 @@ app.get('/api/student/course/:courseId', authenticateToken, async (req, res) => 
   try {
     const courseId = req.params.courseId;
     
-    const course = await Course.findById(courseId).populate('category');
+    const course = await Course.findById(courseId).populate('panel', 'name');
     
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
