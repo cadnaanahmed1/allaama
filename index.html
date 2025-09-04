@@ -26,8 +26,7 @@
           <li><a href="#" id="courses-link">Courses</a></li>
           <li><a href="#" id="dashboard-link" style="display: none;">Dashboard</a></li>
           <li><a href="#" id="admin-link" style="display: none;">Admin</a></li>
-          <li><a href="#" id="student-settings-link" style="display: none;">Settings</a></li>
-          <li><a href="#" id="admin-settings-link" style="display: none;">Admin Settings</a></li>
+          <li><a href="#" id="admin-settings-link" style="display: none;">Settings</a></li>
           <li><a href="#" id="about-link">About</a></li>
           <li><a href="#" id="contact-link">Contact</a></li>
           <li><a href="#" id="login-link">Login</a></li>
@@ -169,9 +168,20 @@
     <section id="public-courses-section" class="courses" style="display: none;">
       <div class="container">
         <h2 class="section-title">Available Courses</h2>
-        <div class="course-grid" id="public-course-container">
-          <!-- Courses will be dynamically loaded here -->
+        
+        <!-- Course Search -->
+        <div class="course-search-container">
+          <div class="search-bar">
+            <input type="text" id="course-search" placeholder="Search courses by name...">
+            <button id="search-button"><i class="fas fa-search"></i></button>
+          </div>
         </div>
+        
+        <!-- Course Panels -->
+        <div id="course-panels-container">
+          <!-- Course panels will be dynamically loaded here -->
+        </div>
+        
         <div class="auth-cta">
           <p>To enroll in courses, please <a href="#" id="login-from-courses">login</a> or <a href="#" id="signup-from-courses">sign up</a></p>
         </div>
@@ -183,17 +193,17 @@
       <div class="container">
         <h2 class="section-title">Available Courses</h2>
         
-        <!-- Search bar -->
-        <div class="search-container">
+        <!-- Course Search -->
+        <div class="course-search-container">
           <div class="search-bar">
-            <input type="text" id="course-search" placeholder="Search courses...">
-            <button id="search-button"><i class="fas fa-search"></i></button>
+            <input type="text" id="course-search-logged" placeholder="Search courses by name...">
+            <button id="search-button-logged"><i class="fas fa-search"></i></button>
           </div>
         </div>
         
-        <!-- Panels container -->
-        <div id="panels-container">
-          <!-- Panels with courses will be dynamically loaded here -->
+        <!-- Course Panels -->
+        <div id="course-panels-container-logged">
+          <!-- Course panels will be dynamically loaded here -->
         </div>
       </div>
     </section>
@@ -218,7 +228,7 @@
     </section>
     
     <!-- Student Settings Section -->
-    <section id="student-settings-section" class="student-settings" style="display: none;">
+    <section id="student-settings-section" class="admin-settings" style="display: none;">
       <div class="container">
         <div class="settings-container">
           <h2 class="section-title">Student Settings</h2>
@@ -231,7 +241,7 @@
               
               <div class="form-group">
                 <label for="student-settings-email">Email</label>
-                <input type="email" id="student-settings-email" required>
+                <input type="email" id="student-settings-email" readonly>
               </div>
               
               <div class="form-group">
@@ -273,15 +283,34 @@
       </div>
     </section>
     
+    <!-- Shared Course Section -->
+    <section id="shared-course-section" class="course-content" style="display: none;">
+      <div class="container">
+        <div class="course-header">
+          <button id="back-to-home" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Home</button>
+          <h2 id="shared-course-title">Course Title</h2>
+          <p id="shared-course-instructor">Instructor Name</p>
+        </div>
+        
+        <div id="shared-course-access-message" class="access-message" style="display: none;">
+          <!-- Access message will be shown here -->
+        </div>
+        
+        <div class="course-modules" id="shared-course-modules-container">
+          <!-- Course modules with videos will be loaded here -->
+        </div>
+      </div>
+    </section>
+    
     <!-- Admin Dashboard Section -->
     <section id="admin-section" class="admin-dashboard" style="display: none;">
       <div class="container">
         <h2 class="section-title">Admin Dashboard</h2>
         <div class="admin-tabs">
           <button class="tab-btn active" data-tab="courses">Courses</button>
+          <button class="tab-btn" data-tab="categories">Categories</button>
           <button class="tab-btn" data-tab="enrollments">Enrollments</button>
           <button class="tab-btn" data-tab="users">Users</button>
-          <button class="tab-btn" data-tab="panels">Panels</button>
         </div>
         
         <!-- Courses Tab -->
@@ -292,6 +321,17 @@
           </div>
           <div class="course-grid" id="admin-course-container">
             <!-- Courses will be dynamically loaded here -->
+          </div>
+        </div>
+        
+        <!-- Categories Tab -->
+        <div class="tab-content" id="categories-tab">
+          <div class="tab-header">
+            <h3>Category Management</h3>
+            <button id="add-category-btn" class="cta-button">Add New Category</button>
+          </div>
+          <div class="category-grid" id="admin-category-container">
+            <!-- Categories will be dynamically loaded here -->
           </div>
         </div>
         
@@ -330,6 +370,7 @@
                   <th>Name</th>
                   <th>Email</th>
                   <th>Role</th>
+                  <th>Enrollments</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -337,17 +378,6 @@
                 <!-- Users will be dynamically loaded here -->
               </tbody>
             </table>
-          </div>
-        </div>
-        
-        <!-- Panels Tab -->
-        <div class="tab-content" id="panels-tab">
-          <div class="tab-header">
-            <h3>Panel Management</h3>
-            <button id="add-panel-btn" class="cta-button">Add New Panel</button>
-          </div>
-          <div class="panel-grid" id="admin-panel-container">
-            <!-- Panels will be dynamically loaded here -->
           </div>
         </div>
       </div>
@@ -394,40 +424,6 @@
       </div>
     </section>
     
-    <!-- Shared Course Section -->
-    <section id="shared-course-section" class="shared-course" style="display: none;">
-      <div class="container">
-        <div class="course-header">
-          <h2 id="shared-course-title">Course Title</h2>
-          <p id="shared-course-instructor">Instructor Name</p>
-          <div id="shared-course-panel" class="course-panel"></div>
-        </div>
-        
-        <div class="course-content">
-          <div class="course-image" id="shared-course-image">
-            <!-- Course image will be loaded here -->
-          </div>
-          
-          <div class="course-details">
-            <p id="shared-course-description">Course description</p>
-            <div class="course-meta">
-              <div class="course-price" id="shared-course-price">
-                <i class="fas fa-dollar-sign"></i> Price
-              </div>
-            </div>
-            
-            <div class="course-access" id="shared-course-access">
-              <!-- Access control will be handled here -->
-            </div>
-          </div>
-        </div>
-        
-        <div class="course-modules" id="shared-course-modules-container">
-          <!-- Course modules with videos will be loaded here -->
-        </div>
-      </div>
-    </section>
-    
     <!-- Add/Edit Course Modal -->
     <div id="course-modal" class="modal">
       <div class="modal-content">
@@ -457,10 +453,10 @@
             <small class="form-text text-muted">Enter a valid URL for the course image (e.g., https://example.com/image.jpg)</small>
           </div>
           <div class="form-group">
-            <label for="course-panel">Panel</label>
-            <select id="course-panel" required>
-              <option value="">Select a panel</option>
-              <!-- Panels will be dynamically loaded here -->
+            <label for="course-category">Category</label>
+            <select id="course-category" required>
+              <option value="">Select a category</option>
+              <!-- Categories will be dynamically loaded here -->
             </select>
           </div>
           <div class="form-group">
@@ -479,26 +475,22 @@
       </div>
     </div>
     
-    <!-- Add/Edit Panel Modal -->
-    <div id="panel-modal" class="modal">
+    <!-- Add/Edit Category Modal -->
+    <div id="category-modal" class="modal">
       <div class="modal-content">
         <span class="close">&times;</span>
-        <h2 id="panel-modal-title">Add New Panel</h2>
-        <form id="panel-form">
-          <input type="hidden" id="panel-id">
+        <h2 id="category-modal-title">Add New Category</h2>
+        <form id="category-form">
+          <input type="hidden" id="category-id">
           <div class="form-group">
-            <label for="panel-name">Panel Name</label>
-            <input type="text" id="panel-name" required>
+            <label for="category-name">Name</label>
+            <input type="text" id="category-name" required>
           </div>
           <div class="form-group">
-            <label for="panel-description">Description</label>
-            <textarea id="panel-description" rows="4"></textarea>
+            <label for="category-description">Description</label>
+            <textarea id="category-description" rows="3" required></textarea>
           </div>
-          <div class="form-group">
-            <label for="panel-color">Color</label>
-            <input type="color" id="panel-color" value="#3498db">
-          </div>
-          <button type="submit" class="cta-button">Save Panel</button>
+          <button type="submit" class="cta-button">Save Category</button>
         </form>
       </div>
     </div>
@@ -512,6 +504,7 @@
           <p><strong>Instructor:</strong> <span id="view-course-instructor"></span></p>
           <p><strong>Price:</strong> $<span id="view-course-price"></span></p>
           <p><strong>Description:</strong> <span id="view-course-description"></span></p>
+          <p><strong>Category:</strong> <span id="view-course-category"></span></p>
         </div>
         
         <div class="course-modules" id="view-course-modules-container">
@@ -567,46 +560,6 @@
         <div class="modal-actions">
           <button id="cancel-enrollment" class="btn-secondary">Cancel</button>
           <button id="confirm-enrollment-btn" class="cta-button">Confirm Enrollment</button>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Share Course Modal -->
-    <div id="share-course-modal" class="modal">
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2><i class="fas fa-share-alt"></i> Share Course</h2>
-        <div class="share-options">
-          <div class="share-url-container">
-            <label for="share-url">Shareable Link:</label>
-            <div class="share-url-input">
-              <input type="text" id="share-url" value="" readonly>
-              <button id="copy-url-btn" class="btn btn-primary">
-                <i class="fas fa-copy"></i> Copy
-              </button>
-            </div>
-          </div>
-          
-          <div class="share-buttons">
-            <h3>Share via:</h3>
-            <div class="share-platforms">
-              <button class="share-platform-btn" data-platform="facebook">
-                <i class="fab fa-facebook"></i> Facebook
-              </button>
-              <button class="share-platform-btn" data-platform="twitter">
-                <i class="fab fa-twitter"></i> Twitter
-              </button>
-              <button class="share-platform-btn" data-platform="linkedin">
-                <i class="fab fa-linkedin"></i> LinkedIn
-              </button>
-              <button class="share-platform-btn" data-platform="whatsapp">
-                <i class="fab fa-whatsapp"></i> WhatsApp
-              </button>
-              <button class="share-platform-btn" data-platform="email">
-                <i class="fas fa-envelope"></i> Email
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
