@@ -2608,90 +2608,90 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  // Load admin categories
-  function loadAdminCategories() {
-    // Create beautiful loading spinner
-    const spinner = createLoadingSpinner(adminCategoryContainer);
+// Load admin categories
+function loadAdminCategories() {
+  // Create beautiful loading spinner
+  const spinner = createLoadingSpinner(adminCategoryContainer);
+  
+  fetch(`${API_BASE_URL}/api/admin/categories`, {
+    headers: {
+      'Authorization': `Bearer ${authToken}`
+    }
+  })
+  .then(response => response.json())
+  .then(categories => {
+    // Remove spinner
+    spinner.remove();
     
-    fetch(`${API_BASE_URL}/api/admin/categories`, {
-      headers: {
-        'Authorization': `Bearer ${authToken}`
-      }
-    })
-    .then(response => response.json())
-    .then(categories => {
-      // Remove spinner
-      spinner.remove();
+    if (adminCategoryContainer) {
+      adminCategoryContainer.innerHTML = '';
       
-      if (adminCategoryContainer) {
-        adminCategoryContainer.innerHTML = '';
+      // Create beautiful category cards
+      categories.forEach((category, index) => {
+        const categoryCard = document.createElement('div');
+        categoryCard.className = 'category-card beautiful-card';
+        categoryCard.style.opacity = '0';
+        categoryCard.style.transform = 'translateY(20px)';
         
-        // Create beautiful category cards
-        categories.forEach((category, index) => {
-          const categoryCard = document.createElement('div');
-          categoryCard.className = 'category-card beautiful-card';
-          categoryCard.style.opacity = '0';
-          categoryCard.style.transform = 'translateY(20px)';
-          
-          categoryCard.innerHTML = `
-            <div class="card-header">
-              <h3>${category.name}</h3>
-            </div>
-            <div class="card-body">
-              <p>${category.description}</p>
-            </div>
-            <div class="card-footer">
-              <button class="edit-category-btn btn btn-primary" data-category-id="${category._id}">
-                <i class="fas fa-edit"></i> Edit
-              </button>
-              <button class="delete-category-btn btn btn-danger" data-category-id="${category._id}">
-                <i class="fas fa-trash"></i> Delete
-              </button>
-            </div>
-          `;
-          
-          adminCategoryContainer.appendChild(categoryCard);
-          
-          // Animate card in with staggered delay
-          setTimeout(() => {
-            categoryCard.style.opacity = '1';
-            categoryCard.style.transform = 'translateY(0)';
-            categoryCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-          }, index * 100);
-        });
+        categoryCard.innerHTML = `
+          <div class="card-header">
+            <h3>${category.name}</h3>
+          </div>
+          <div class="card-body">
+            <p>${category.description}</p>
+          </div>
+          <div class="card-footer">
+            <button class="edit-category-btn btn btn-primary" data-category-id="${category._id}">
+              <i class="fas fa-edit"></i> Edit
+            </button>
+            <button class="delete-category-btn btn btn-danger" data-category-id="${category._id}">
+              <i class="fas fa-trash"></i> Delete
+            </button>
+          </div>
+        `;
         
-        // Add event listeners to edit and delete buttons
-        document.querySelectorAll('.edit-category-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const categoryId = e.target.getAttribute('data-category-id');
-            editCategory(categoryId);
-          });
-        });
+        adminCategoryContainer.appendChild(categoryCard);
         
-        document.querySelectorAll('.delete-category-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const categoryId = e.target.getAttribute('data-category-id');
-            deleteCategory(categoryId);
-          });
-        });
-      }
-    })
-    .catch(error => {
-      console.error('Error loading admin categories:', error);
+        // Animate card in with staggered delay
+        setTimeout(() => {
+          categoryCard.style.opacity = '1';
+          categoryCard.style.transform = 'translateY(0)';
+          categoryCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        }, index * 100);
+      });
       
-      // Remove spinner and show error
-      spinner.remove();
-      adminCategoryContainer.innerHTML = `
-        <div class="error-message">
-          <i class="fas fa-exclamation-triangle"></i>
-          <p>Failed to load admin categories: ${error.message}</p>
-        </div>
-      `;
+      // Add event listeners to edit and delete buttons
+      document.querySelectorAll('.edit-category-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const categoryId = e.target.getAttribute('data-category-id');
+          editCategory(categoryId);
+        });
+      });
       
-      // Show error notification
-      createNotification('Failed to load admin categories', 'error');
-    });
-  }
+      document.querySelectorAll('.delete-category-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const categoryId = e.target.getAttribute('data-category-id');
+          deleteCategory(categoryId);
+        });
+      });
+    }
+  })
+  .catch(error => {
+    console.error('Error loading admin categories:', error);
+    
+    // Remove spinner and show error
+    spinner.remove();
+    adminCategoryContainer.innerHTML = `
+      <div class="error-message">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p>Failed to load admin categories: ${error.message}</p>
+      </div>
+    `;
+    
+    // Show error notification
+    createNotification('Failed to load admin categories', 'error');
+  });
+}
   
   // Load admin courses
   function loadAdminCourses() {
