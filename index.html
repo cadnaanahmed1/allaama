@@ -417,6 +417,19 @@
             <input type="text" id="course-instructor" required>
           </div>
           <div class="form-group">
+            <label for="course-type">Course Type</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" name="course-type" id="course-type-paid" value="paid" checked>
+                <span>Paid</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="course-type" id="course-type-free" value="free">
+                <span>Free</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-group" id="price-group">
             <label for="course-price">Price ($)</label>
             <input type="number" id="course-price" min="0" step="0.01" required>
           </div>
@@ -474,7 +487,7 @@
         <h2 id="view-course-title">Course Title</h2>
         <div class="course-info">
           <p><strong>Instructor:</strong> <span id="view-course-instructor"></span></p>
-          <p><strong>Price:</strong> $<span id="view-course-price"></span></p>
+          <p><strong>Price:</strong> <span id="view-course-price"></span></p>
           <p><strong>Description:</strong> <span id="view-course-description"></span></p>
         </div>
         
@@ -775,6 +788,25 @@
           mobileMenuToggle.classList.remove('active');
         });
       });
+      
+      // Course type radio button functionality
+      const paidRadio = document.getElementById('course-type-paid');
+      const freeRadio = document.getElementById('course-type-free');
+      const priceGroup = document.getElementById('price-group');
+      const priceInput = document.getElementById('course-price');
+      
+      if (paidRadio && freeRadio && priceGroup && priceInput) {
+        paidRadio.addEventListener('change', function() {
+          priceGroup.style.display = 'block';
+          priceInput.required = true;
+        });
+        
+        freeRadio.addEventListener('change', function() {
+          priceGroup.style.display = 'none';
+          priceInput.required = false;
+          priceInput.value = 0;
+        });
+      }
     });
   </script>
 </body>
