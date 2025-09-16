@@ -203,88 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     return spinner;
   }
-
-
-
-  function createCourseCard(course, container, isAdmin = false) {
-  const courseCard = document.createElement('div');
-  courseCard.className = 'course-card beautiful-card';
-  courseCard.style.opacity = '0';
-  courseCard.style.transform = 'translateY(20px)';
-  
-  // Validate and fix image URL
-  const imageUrl = validateImageUrl(course.imageUrl);
-  
-  courseCard.innerHTML = `
-    <div class="card-image">
-      ${imageUrl ? 
-        `<img src="${imageUrl}" alt="${course.title}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-         <div class="image-error" style="display: none;">
-           <i class="fas fa-exclamation-triangle"></i>
-           <p>Image not available</p>
-         </div>` : 
-        `<div class="image-error">
-           <i class="fas fa-exclamation-triangle"></i>
-           <p>No image provided</p>
-         </div>`
-      }
-    </div>
-    <div class="card-content">
-      <h3>${course.title}</h3>
-      <p>${course.description}</p>
-      <div class="course-meta">
-        <div class="course-instructor">
-          <i class="fas fa-user"></i> ${course.instructor}
-        </div>
-        <div class="course-price">
-          ${course.isFree ? 
-            '<i class="fas fa-gift"></i> Free' : 
-            `<i class="fas fa-dollar-sign"></i> ${course.price}`
-          }
-        </div>
-        ${course.panel ? `<div class="course-panel">
-          <i class="fas fa-folder"></i> ${course.panel.name}
-        </div>` : ''}
-      </div>
-      <div class="course-actions">
-        ${isAdmin ? 
-          `<button class="edit-course-btn btn btn-primary" data-course-id="${course._id}">
-            <i class="fas fa-edit"></i> Edit
-          </button>
-           <button class="delete-course-btn btn btn-danger" data-course-id="${course._id}">
-            <i class="fas fa-trash"></i> Delete
-          </button>
-           <button class="view-course-admin-btn btn btn-secondary" data-course-id="${course._id}">
-            <i class="fas fa-eye"></i> View Course
-          </button>` :
-          currentUser && currentUser.role === 'student' ? 
-          `<button class="enroll-btn btn btn-primary" data-course-id="${course._id}">
-            <i class="fas fa-user-plus"></i> ${course.isFree ? 'Enroll Now' : 'Enroll Now'}
-          </button>` :
-          !currentUser ? 
-          `<button class="login-to-enroll-btn btn btn-primary" data-course-id="${course._id}">
-            <i class="fas fa-sign-in-alt"></i> Login to Enroll
-          </button>` : ''}
-        <button class="share-course-btn btn btn-outline" data-course-id="${course._id}">
-          <i class="fas fa-share-alt"></i> Share
-        </button>
-      </div>
-    </div>
-  `;
-  
-  container.appendChild(courseCard);
-  
-  // Animate card in with staggered delay
-  setTimeout(() => {
-    courseCard.style.opacity = '1';
-    courseCard.style.transform = 'translateY(0)';
-    courseCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-  }, 100);
-  
-  return courseCard;
-}
-
-  
   
   // Create Beautiful Progress Bar
   function createProgressBar(progress, container) {
@@ -443,96 +361,160 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  
-
-
-// Update the loadPublicCourses, loadCourses, and loadAdminCourses functions
-// to use the new createCourseCard function
-
-// Example for loadPublicCourses
-function loadPublicCourses() {
-  // Create beautiful loading spinner
-  const spinner = createLoadingSpinner(publicCourseContainer);
-  
-  fetch(`${API_BASE_URL}/api/public/courses`, {
-    method: 'GET',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-  })
-  .then(data => {
-    // Remove spinner
-    spinner.remove();
+  // Load public courses (for non-logged in users)
+  function loadPublicCourses() {
+    // Create beautiful loading spinner
+    const spinner = createLoadingSpinner(publicCourseContainer);
     
-    publicCourseContainer.innerHTML = '';
-    
-    if (data.length === 0) {
-      publicCourseContainer.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">
-            <i class="fas fa-book-open"></i>
+    fetch(`${API_BASE_URL}/api/public/courses`, {
+      method: 'GET',
+      credentials: 'include', // This is important
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Public courses data:', data);
+      
+      // Check if the response is an array
+      if (!Array.isArray(data)) {
+        throw new Error('Expected an array of courses');
+      }
+      
+      // Remove spinner
+      spinner.remove();
+      
+      publicCourseContainer.innerHTML = '';
+      
+      if (data.length === 0) {
+        // Show a message when no courses are available
+        publicCourseContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <i class="fas fa-book-open"></i>
+            </div>
+            <h3>No Courses Available</h3>
+            <p>There are currently no courses available. Please check back later.</p>
           </div>
-          <h3>No Courses Available</h3>
-          <p>There are currently no courses available. Please check back later.</p>
+        `;
+        return;
+      }
+      
+      // Create beautiful course cards
+      data.forEach((course, index) => {
+        console.log('Processing course:', course);
+        console.log('Course imageUrl:', course.imageUrl);
+        
+        const courseCard = document.createElement('div');
+        courseCard.className = 'course-card beautiful-card';
+        courseCard.style.opacity = '0';
+        courseCard.style.transform = 'translateY(20px)';
+        
+        // Validate and fix image URL
+        const imageUrl = validateImageUrl(course.imageUrl);
+        console.log('Using imageUrl:', imageUrl);
+        
+        courseCard.innerHTML = `
+          <div class="card-image">
+            ${imageUrl ? 
+              `<img src="${imageUrl}" alt="${course.title}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                 <div class="image-error" style="display: none;">
+                   <i class="fas fa-exclamation-triangle"></i>
+                   <p>Image not available</p>
+                 </div>` : 
+              `<div class="image-error">
+                 <i class="fas fa-exclamation-triangle"></i>
+                 <p>No image provided</p>
+               </div>`
+            }
+          </div>
+          <div class="card-content">
+            <h3>${course.title}</h3>
+            <p>${course.description}</p>
+            <div class="course-meta">
+              <div class="course-instructor">
+                <i class="fas fa-user"></i> ${course.instructor}
+              </div>
+              <div class="course-price">
+                ${course.isFree ? 
+                  '<i class="fas fa-gift"></i> Free' : 
+                  `<i class="fas fa-dollar-sign"></i> ${course.price}`
+                }
+              </div>
+              ${course.panel ? `<div class="course-panel">
+                <i class="fas fa-folder"></i> ${course.panel.name}
+              </div>` : ''}
+            </div>
+            <div class="course-actions">
+              ${currentUser && currentUser.role === 'student' ? 
+                `<button class="enroll-btn btn btn-primary" data-course-id="${course._id}" data-is-free="${course.isFree}">
+                  <i class="fas fa-user-plus"></i> Enroll Now
+                </button>` : 
+                !currentUser ? 
+                `<button class="login-to-enroll-btn btn btn-primary" data-course-id="${course._id}" data-is-free="${course.isFree}">
+                  <i class="fas fa-sign-in-alt"></i> Login to Enroll
+                </button>` : ''}
+              <button class="share-course-btn btn btn-outline" data-course-id="${course._id}">
+                <i class="fas fa-share-alt"></i> Share
+              </button>
+            </div>
+          </div>
+        `;
+        
+        publicCourseContainer.appendChild(courseCard);
+        
+        // Animate card in with staggered delay
+        setTimeout(() => {
+          courseCard.style.opacity = '1';
+          courseCard.style.transform = 'translateY(0)';
+          courseCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        }, index * 100);
+      });
+      
+      // Add event listeners to login buttons for non-logged in users
+      if (!currentUser) {
+        document.querySelectorAll('.login-to-enroll-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const courseId = e.target.getAttribute('data-course-id');
+            // Store the course ID in session storage to redirect after login
+            sessionStorage.setItem('enrollAfterLogin', courseId);
+            showSection('login');
+          });
+        });
+      }
+      
+      // Add event listeners to share buttons
+      document.querySelectorAll('.share-course-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const courseId = e.target.getAttribute('data-course-id');
+          shareCourse(courseId);
+        });
+      });
+    })
+    .catch(error => {
+      console.error('Error loading public courses:', error);
+      
+      // Remove spinner and show error
+      spinner.remove();
+      publicCourseContainer.innerHTML = `
+        <div class="error-message">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>Failed to load courses. Please check your internet connection and try again later.</p>
         </div>
       `;
-      return;
-    }
-    
-    // Create beautiful course cards
-    data.forEach((course, index) => {
-      createCourseCard(course, publicCourseContainer, false);
+      
+      // Only show error notification if not already in the process of logging out
+      if (authToken) {
+        createNotification('Failed to load courses. Please try again later.', 'error');
+      }
     });
-    
-    // Add event listeners to enroll buttons
-    if (currentUser && currentUser.role === 'student') {
-      document.querySelectorAll('.enroll-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const courseId = e.target.getAttribute('data-course-id');
-          showEnrollmentConfirmation(courseId);
-        });
-      });
-    }
-    
-    // Add event listeners to login buttons for non-logged in users
-    if (!currentUser) {
-      document.querySelectorAll('.login-to-enroll-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const courseId = e.target.getAttribute('data-course-id');
-          sessionStorage.setItem('enrollAfterLogin', courseId);
-          showSection('login');
-        });
-      });
-    }
-    
-    // Add event listeners to share buttons
-    document.querySelectorAll('.share-course-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const courseId = e.target.getAttribute('data-course-id');
-        shareCourse(courseId);
-      });
-    });
-  })
-  .catch(error => {
-    console.error('Error loading public courses:', error);
-    
-    // Remove spinner and show error
-    spinner.remove();
-    publicCourseContainer.innerHTML = `
-      <div class="error-message">
-        <i class="fas fa-exclamation-triangle"></i>
-        <p>Failed to load courses. Please check your internet connection and try again later.</p>
-      </div>
-    `;
-  });
-}
+  }
   
   // Setup event listeners
   function setupEventListeners() {
@@ -552,27 +534,16 @@ function loadPublicCourses() {
       contactForm.addEventListener('submit', handleContactForm);
     }
     
-  // Add event listeners for course type radio buttons
-document.addEventListener('DOMContentLoaded', function() {
-  const paidRadio = document.getElementById('course-type-paid');
-  const freeRadio = document.getElementById('course-type-free');
-  const priceGroup = document.getElementById('price-group');
-  const priceInput = document.getElementById('course-price');
-  
-  if (paidRadio && freeRadio && priceGroup && priceInput) {
-    paidRadio.addEventListener('change', function() {
-      priceGroup.style.display = 'block';
-      priceInput.required = true;
+    // FAQ accordion functionality
+    document.addEventListener('DOMContentLoaded', () => {
+      const faqItems = document.querySelectorAll('.faq-item h4');
+      faqItems.forEach(item => {
+        item.addEventListener('click', () => {
+          const faqItem = item.parentElement;
+          faqItem.classList.toggle('active');
+        });
+      });
     });
-    
-    freeRadio.addEventListener('change', function() {
-      priceGroup.style.display = 'none';
-      priceInput.required = false;
-      priceInput.value = 0;
-    });
-  }
-});
-    
     
     // Navigation
     navLinks.home.addEventListener('click', (e) => {
@@ -837,6 +808,23 @@ document.addEventListener('DOMContentLoaded', function() {
       if (e.target.closest('.delete-user-btn')) {
         const userId = e.target.closest('.delete-user-btn').getAttribute('data-user-id');
         deleteUser(userId);
+      }
+    });
+    
+    // Event delegation for enroll buttons
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.enroll-btn')) {
+        const btn = e.target.closest('.enroll-btn');
+        const courseId = btn.getAttribute('data-course-id');
+        const isFree = btn.getAttribute('data-is-free') === 'true';
+        
+        if (isFree) {
+          // For free courses, enroll directly
+          enrollInFreeCourse(courseId);
+        } else {
+          // For paid courses, show payment confirmation
+          showEnrollmentConfirmation(courseId);
+        }
       }
     });
   }
@@ -1521,7 +1509,10 @@ document.addEventListener('DOMContentLoaded', function() {
                   <i class="fas fa-user"></i> ${course.instructor}
                 </div>
                 <div class="course-price">
-                  <i class="fas fa-dollar-sign"></i> ${course.price}
+                  ${course.isFree ? 
+                    '<i class="fas fa-gift"></i> Free' : 
+                    `<i class="fas fa-dollar-sign"></i> ${course.price}`
+                  }
                 </div>
                 ${course.panel ? `<div class="course-panel">
                   <i class="fas fa-folder"></i> ${course.panel.name}
@@ -1529,11 +1520,11 @@ document.addEventListener('DOMContentLoaded', function() {
               </div>
               <div class="course-actions">
                 ${currentUser && currentUser.role === 'student' ? 
-                  `<button class="enroll-btn btn btn-primary" data-course-id="${course._id}">
+                  `<button class="enroll-btn btn btn-primary" data-course-id="${course._id}" data-is-free="${course.isFree}">
                     <i class="fas fa-user-plus"></i> Enroll Now
                   </button>` : 
                   !currentUser ? 
-                  `<button class="login-to-enroll-btn btn btn-primary" data-course-id="${course._id}">
+                  `<button class="login-to-enroll-btn btn btn-primary" data-course-id="${course._id}" data-is-free="${course.isFree}">
                     <i class="fas fa-sign-in-alt"></i> Login to Enroll
                   </button>` : ''}
                 <button class="share-course-btn btn btn-outline" data-course-id="${course._id}">
@@ -1552,16 +1543,6 @@ document.addEventListener('DOMContentLoaded', function() {
             courseCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
           }, index * 100);
         });
-        
-        // Add event listeners to enroll buttons
-        if (currentUser && currentUser.role === 'student') {
-          document.querySelectorAll('.enroll-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-              const courseId = e.target.getAttribute('data-course-id');
-              showEnrollmentConfirmation(courseId);
-            });
-          });
-        }
         
         // Add event listeners to login buttons for non-logged in users
         if (!currentUser) {
@@ -1667,7 +1648,10 @@ document.addEventListener('DOMContentLoaded', function() {
                   <i class="fas fa-user"></i> ${course.instructor}
                 </div>
                 <div class="course-price">
-                  <i class="fas fa-dollar-sign"></i> ${course.price}
+                  ${course.isFree ? 
+                    '<i class="fas fa-gift"></i> Free' : 
+                    `<i class="fas fa-dollar-sign"></i> ${course.price}`
+                  }
                 </div>
                 ${course.panel ? `<div class="course-panel">
                   <i class="fas fa-folder"></i> ${course.panel.name}
@@ -1675,7 +1659,7 @@ document.addEventListener('DOMContentLoaded', function() {
               </div>
               <div class="course-actions">
                 ${currentUser && currentUser.role === 'student' ? 
-                  `<button class="enroll-btn btn btn-primary" data-course-id="${course._id}">
+                  `<button class="enroll-btn btn btn-primary" data-course-id="${course._id}" data-is-free="${course.isFree}">
                     <i class="fas fa-user-plus"></i> Enroll Now
                   </button>` : ''}
                 <button class="share-course-btn btn btn-outline" data-course-id="${course._id}">
@@ -1694,16 +1678,6 @@ document.addEventListener('DOMContentLoaded', function() {
             courseCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
           }, index * 100);
         });
-        
-        // Add event listeners to enroll buttons
-        if (currentUser && currentUser.role === 'student') {
-          document.querySelectorAll('.enroll-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-              const courseId = e.target.getAttribute('data-course-id');
-              showEnrollmentConfirmation(courseId);
-            });
-          });
-        }
         
         // Add event listeners to share buttons
         document.querySelectorAll('.share-course-btn').forEach(btn => {
@@ -1842,17 +1816,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-user"></i> ${course.instructor}
               </div>
               <div class="course-price">
-                <i class="fas fa-dollar-sign"></i> ${course.price}
+                ${course.isFree ? 
+                  '<i class="fas fa-gift"></i> Free' : 
+                  `<i class="fas fa-dollar-sign"></i> ${course.price}`
+                }
               </div>
               ${course.panel ? `<div class="course-panel">
                 <i class="fas fa-folder"></i> ${course.panel.name}
               </div>` : ''}
             </div>
             <div class="course-actions">
-              ${currentUser && currentUser.role === 'student' ? 
-                `<button class="enroll-btn btn btn-primary" data-course-id="${course._id}">
-                  <i class="fas fa-user-plus"></i> Enroll Now
-                </button>` : ''}
+              <button class="enroll-btn btn btn-primary" data-course-id="${course._id}" data-is-free="${course.isFree}">
+                <i class="fas fa-user-plus"></i> Enroll Now
+              </button>
               <button class="share-course-btn btn btn-outline" data-course-id="${course._id}">
                 <i class="fas fa-share-alt"></i> Share
               </button>
@@ -1869,16 +1845,6 @@ document.addEventListener('DOMContentLoaded', function() {
           courseCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
         }, index * 100);
       });
-      
-      // Add event listeners to enroll buttons
-      if (currentUser && currentUser.role === 'student') {
-        document.querySelectorAll('.enroll-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const courseId = e.target.getAttribute('data-course-id');
-            showEnrollmentConfirmation(courseId);
-          });
-        });
-      }
       
       // Add event listeners to share buttons
       document.querySelectorAll('.share-course-btn').forEach(btn => {
@@ -1931,7 +1897,61 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Enroll in course
+  // Enroll in free course directly
+  function enrollInFreeCourse(courseId) {
+    // Show loading notification
+    createNotification('Enrolling in free course...', 'info');
+    
+    fetch(`${API_BASE_URL}/api/student/enroll`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ courseId })
+    })
+    .then(response => {
+      console.log('Enrollment response status:', response.status);
+      
+      if (!response.ok) {
+        return response.json().then(err => {
+          console.error('Enrollment error response:', err);
+          throw new Error(err.message || 'Enrollment failed');
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      createNotification('Successfully enrolled in the course!', 'success');
+      
+      // Navigate to the course content
+      viewCourseContent(courseId);
+    })
+    .catch(error => {
+      // Show more specific error message
+      let errorMessage = 'Enrollment failed. Please try again.';
+      
+      if (error.message.includes('Already enrolled')) {
+        errorMessage = 'You are already enrolled in this course.';
+      } else if (error.message.includes('Course not found')) {
+        errorMessage = 'The selected course does not exist.';
+      } else if (error.message.includes('Course ID is required')) {
+        errorMessage = 'Invalid course selection.';
+      } else if (error.message.includes('token')) {
+        errorMessage = 'Your session has expired. Please login again.';
+        // Redirect to login page
+        setTimeout(() => {
+          logout();
+          showSection('login');
+        }, 2000);
+      }
+      
+      createNotification(errorMessage, 'error');
+      console.error('Enrollment error:', error);
+    });
+  }
+  
+  // Enroll in course (for paid courses)
   function enrollInCourse(courseId) {
     // Validate courseId
     if (!courseId) {
@@ -2789,7 +2809,10 @@ document.addEventListener('DOMContentLoaded', function() {
                   <i class="fas fa-user"></i> ${course.instructor}
                 </div>
                 <div class="course-price">
-                  <i class="fas fa-dollar-sign"></i> ${course.price}
+                  ${course.isFree ? 
+                    '<i class="fas fa-gift"></i> Free' : 
+                    `<i class="fas fa-dollar-sign"></i> ${course.price}`
+                  }
                 </div>
                 ${course.panel ? `<div class="course-panel">
                   <i class="fas fa-folder"></i> ${course.panel.name}
@@ -2899,7 +2922,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('view-course-instructor').textContent = course.instructor;
       }
       if (document.getElementById('view-course-price')) {
-        document.getElementById('view-course-price').textContent = course.price;
+        document.getElementById('view-course-price').textContent = course.isFree ? 'Free' : course.price;
       }
       if (document.getElementById('view-course-description')) {
         document.getElementById('view-course-description').textContent = course.description;
@@ -3484,82 +3507,80 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-
-
-// Update the openCourseModal function to handle the isFree field
-function openCourseModal(course = null) {
-  if (course) {
-    if (modalTitle) modalTitle.textContent = 'Edit Course';
-    if (courseIdInput) courseIdInput.value = course._id;
-    if (document.getElementById('course-title')) document.getElementById('course-title').value = course.title;
-    if (document.getElementById('course-description')) document.getElementById('course-description').value = course.description;
-    if (document.getElementById('course-instructor')) document.getElementById('course-instructor').value = course.instructor;
-    if (document.getElementById('course-price')) document.getElementById('course-price').value = course.price;
-    if (document.getElementById('course-image-url')) {
-      document.getElementById('course-image-url').value = course.imageUrl;
-    }
-    if (document.getElementById('course-panel')) {
-      document.getElementById('course-panel').value = course.panel ? course.panel._id : '';
-    }
-    
-    // Set course type
-    const paidRadio = document.getElementById('course-type-paid');
-    const freeRadio = document.getElementById('course-type-free');
-    const priceGroup = document.getElementById('price-group');
-    
-    if (course.isFree) {
-      freeRadio.checked = true;
-      paidRadio.checked = false;
-      priceGroup.style.display = 'none';
+  // Open course modal
+  function openCourseModal(course = null) {
+    if (course) {
+      if (modalTitle) modalTitle.textContent = 'Edit Course';
+      if (courseIdInput) courseIdInput.value = course._id;
+      if (document.getElementById('course-title')) document.getElementById('course-title').value = course.title;
+      if (document.getElementById('course-description')) document.getElementById('course-description').value = course.description;
+      if (document.getElementById('course-instructor')) document.getElementById('course-instructor').value = course.instructor;
+      if (document.getElementById('course-price')) document.getElementById('course-price').value = course.price;
+      if (document.getElementById('course-image-url')) {
+        document.getElementById('course-image-url').value = course.imageUrl;
+      }
+      if (document.getElementById('course-panel')) {
+        document.getElementById('course-panel').value = course.panel ? course.panel._id : '';
+      }
+      
+      // Set course type
+      const paidRadio = document.getElementById('course-type-paid');
+      const freeRadio = document.getElementById('course-type-free');
+      const priceGroup = document.getElementById('price-group');
+      
+      if (course.isFree) {
+        freeRadio.checked = true;
+        paidRadio.checked = false;
+        priceGroup.style.display = 'none';
+      } else {
+        paidRadio.checked = true;
+        freeRadio.checked = false;
+        priceGroup.style.display = 'block';
+      }
+      
+      // Clear existing modules
+      if (modulesContainer) modulesContainer.innerHTML = '';
+      
+      // Add course modules
+      course.modules.forEach(module => {
+        addModuleInput(module.title, module.duration, module.lessons);
+      });
     } else {
+      if (modalTitle) modalTitle.textContent = 'Add New Course';
+      if (courseIdInput) courseIdInput.value = '';
+      if (courseForm) courseForm.reset();
+      if (modulesContainer) modulesContainer.innerHTML = '';
+      
+      // Set default course type to paid
+      const paidRadio = document.getElementById('course-type-paid');
+      const freeRadio = document.getElementById('course-type-free');
+      const priceGroup = document.getElementById('price-group');
+      
       paidRadio.checked = true;
       freeRadio.checked = false;
       priceGroup.style.display = 'block';
+      
+      addModuleInput();
     }
     
-    // Clear existing modules
-    if (modulesContainer) modulesContainer.innerHTML = '';
+    // Load panels for dropdown
+    loadPanelsForDropdown();
     
-    // Add course modules
-    course.modules.forEach(module => {
-      addModuleInput(module.title, module.duration, module.lessons);
-    });
-  } else {
-    if (modalTitle) modalTitle.textContent = 'Add New Course';
-    if (courseIdInput) courseIdInput.value = '';
-    if (courseForm) courseForm.reset();
-    if (modulesContainer) modulesContainer.innerHTML = '';
-    
-    // Set default course type to paid
-    const paidRadio = document.getElementById('course-type-paid');
-    const freeRadio = document.getElementById('course-type-free');
-    const priceGroup = document.getElementById('price-group');
-    
-    paidRadio.checked = true;
-    freeRadio.checked = false;
-    priceGroup.style.display = 'block';
-    
-    addModuleInput();
+    // Show modal with animation
+    if (courseModal) {
+      courseModal.style.display = 'block';
+      courseModal.style.opacity = '0';
+      courseModal.style.transform = 'scale(0.9)';
+      
+      // Trigger reflow
+      courseModal.offsetHeight;
+      
+      // Animate in
+      courseModal.style.opacity = '1';
+      courseModal.style.transform = 'scale(1)';
+      courseModal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    }
   }
-  
-  // Load panels for dropdown
-  loadPanelsForDropdown();
-  
-  // Show modal with animation
-  if (courseModal) {
-    courseModal.style.display = 'block';
-    courseModal.style.opacity = '0';
-    courseModal.style.transform = 'scale(0.9)';
-    
-    // Trigger reflow
-    courseModal.offsetHeight;
-    
-    // Animate in
-    courseModal.style.opacity = '1';
-    courseModal.style.transform = 'scale(1)';
-    courseModal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-  }
-}
   
   // Add module input
   function addModuleInput(title = '', duration = '', lessons = []) {
@@ -3640,183 +3661,233 @@ function openCourseModal(course = null) {
     });
   }
   
-
-
-// Update course form submission to handle course type
-function handleCourseSubmit(e) {
-  e.preventDefault();
-  
-  // Get form elements
-  const form = e.target;
-  const courseIdInput = form.querySelector('#course-id');
-  const titleInput = form.querySelector('#course-title');
-  const descriptionInput = form.querySelector('#course-description');
-  const instructorInput = form.querySelector('#course-instructor');
-  const priceInput = form.querySelector('#course-price');
-  const imageUrlInput = form.querySelector('#course-image-url');
-  const panelInput = form.querySelector('#course-panel');
-  const freeRadio = document.getElementById('course-type-free');
-  
-  // Get values
-  const courseId = courseIdInput ? courseIdInput.value : '';
-  const title = titleInput.value ? titleInput.value.trim() : '';
-  const description = descriptionInput.value ? descriptionInput.value.trim() : '';
-  const instructor = instructorInput.value ? instructorInput.value.trim() : '';
-  const isFree = freeRadio ? freeRadio.checked : false;
-  const price = isFree ? 0 : (priceInput.value ? parseFloat(priceInput.value) : 0);
-  const imageUrl = imageUrlInput.value ? imageUrlInput.value.trim() : '';
-  const panelId = panelInput.value ? panelInput.value.trim() : '';
-  
-  // Validate required fields
-  if (!title) {
-    createNotification('Please enter a course title', 'error');
-    titleInput.focus();
-    return;
-  }
-  
-  if (!description) {
-    createNotification('Please enter a course description', 'error');
-    descriptionInput.focus();
-    return;
-  }
-  
-  if (!instructor) {
-    createNotification('Please enter an instructor name', 'error');
-    instructorInput.focus();
-    return;
-  }
-  
-  if (!isFree && isNaN(price)) {
-    createNotification('Please enter a valid price', 'error');
-    priceInput.focus();
-    return;
-  }
-  
-  if (!imageUrl) {
-    createNotification('Please enter a course image URL', 'error');
-    imageUrlInput.focus();
-    return;
-  }
-  
-  if (!panelId) {
-    createNotification('Please select a panel', 'error');
-    panelInput.focus();
-    return;
-  }
-  
-  // Validate and fix image URL
-  const validatedImageUrl = validateImageUrl(imageUrl);
-  if (!validatedImageUrl) {
-    createNotification('Please enter a valid image URL', 'error');
-    imageUrlInput.focus();
-    return;
-  }
-  
-  // Collect modules and lessons
-  const modules = [];
-  const modulesContainer = form.querySelector('#modules-container');
-  
-  if (modulesContainer) {
-    const moduleInputs = modulesContainer.querySelectorAll('.module-input');
+  // Handle course submit
+  function handleCourseSubmit(e) {
+    e.preventDefault();
     
-    moduleInputs.forEach((moduleEl, moduleIndex) => {
-      const moduleTitle = moduleEl.querySelector('.module-title');
-      const moduleDuration = moduleEl.querySelector('.module-duration');
+    // Get form elements from the form itself
+    const form = e.target;
+    const courseIdInput = form.querySelector('#course-id');
+    const titleInput = form.querySelector('#course-title');
+    const descriptionInput = form.querySelector('#course-description');
+    const instructorInput = form.querySelector('#course-instructor');
+    const priceInput = form.querySelector('#course-price');
+    const imageUrlInput = form.querySelector('#course-image-url');
+    const panelInput = form.querySelector('#course-panel');
+    const freeRadio = form.querySelector('#course-type-free');
+    
+    // Check if required inputs exist
+    if (!titleInput || !descriptionInput || !instructorInput || !priceInput || !imageUrlInput || !panelInput) {
+      createNotification('Form elements not found. Please refresh the page and try again.', 'error');
+      console.error('Form elements missing:', {
+        titleInput: !!titleInput,
+        descriptionInput: !!descriptionInput,
+        instructorInput: !!instructorInput,
+        priceInput: !!priceInput,
+        imageUrlInput: !!imageUrlInput,
+        panelInput: !!panelInput
+      });
+      return;
+    }
+    
+    // Get values directly from inputs
+    const courseId = courseIdInput ? courseIdInput.value : '';
+    const title = titleInput.value ? titleInput.value.trim() : '';
+    const description = descriptionInput.value ? descriptionInput.value.trim() : '';
+    const instructor = instructorInput.value ? instructorInput.value.trim() : '';
+    const isFree = freeRadio ? freeRadio.checked : false;
+    const price = isFree ? 0 : (priceInput.value ? parseFloat(priceInput.value) : 0);
+    const imageUrl = imageUrlInput.value ? imageUrlInput.value.trim() : '';
+    const panelId = panelInput.value ? panelInput.value.trim() : '';
+    
+    // Debug logging to see what values we're getting
+    console.log('Form values:', {
+      title: `"${title}"`,
+      description: `"${description}"`,
+      instructor: `"${instructor}"`,
+      isFree: isFree,
+      price: price,
+      imageUrl: `"${imageUrl}"`,
+      panelId: `"${panelId}"`
+    });
+    
+    // Validate required fields
+    if (!title) {
+      createNotification('Please enter a course title', 'error');
+      titleInput.focus();
+      return;
+    }
+    
+    if (!description) {
+      createNotification('Please enter a course description', 'error');
+      descriptionInput.focus();
+      return;
+    }
+    
+    if (!instructor) {
+      createNotification('Please enter an instructor name', 'error');
+      instructorInput.focus();
+      return;
+    }
+    
+    if (!isFree && isNaN(price)) {
+      createNotification('Please enter a valid price', 'error');
+      priceInput.focus();
+      return;
+    }
+    
+    if (!imageUrl) {
+      createNotification('Please enter a course image URL', 'error');
+      imageUrlInput.focus();
+      return;
+    }
+    
+    if (!panelId) {
+      createNotification('Please select a panel', 'error');
+      panelInput.focus();
+      return;
+    }
+    
+    // Validate and fix image URL
+    const validatedImageUrl = validateImageUrl(imageUrl);
+    if (!validatedImageUrl) {
+      createNotification('Please enter a valid image URL', 'error');
+      imageUrlInput.focus();
+      return;
+    }
+    
+    // Collect modules and lessons
+    const modules = [];
+    const modulesContainer = form.querySelector('#modules-container');
+    
+    if (modulesContainer) {
+      const moduleInputs = modulesContainer.querySelectorAll('.module-input');
       
-      const moduleTitleValue = moduleTitle && moduleTitle.value ? moduleTitle.value.trim() : '';
-      const moduleDurationValue = moduleDuration && moduleDuration.value ? moduleDuration.value.trim() : '';
+      console.log('Found modules:', moduleInputs.length);
       
-      // Skip empty modules
-      if (!moduleTitleValue || !moduleDurationValue) {
-        return;
-      }
-      
-      const lessons = [];
-      const lessonInputs = moduleEl.querySelectorAll('.lesson-input');
-      
-      lessonInputs.forEach((lessonEl, lessonIndex) => {
-        const lessonTitle = lessonEl.querySelector('.lesson-title');
-        const lessonDuration = lessonEl.querySelector('.lesson-duration');
-        const lessonVideoUrl = lessonEl.querySelector('.lesson-video-url');
+      moduleInputs.forEach((moduleEl, moduleIndex) => {
+        const moduleTitle = moduleEl.querySelector('.module-title');
+        const moduleDuration = moduleEl.querySelector('.module-duration');
         
-        const lessonTitleValue = lessonTitle && lessonTitle.value ? lessonTitle.value.trim() : '';
-        const lessonDurationValue = lessonDuration && lessonDuration.value ? lessonDuration.value.trim() : '';
-        const lessonVideoUrlValue = lessonVideoUrl && lessonVideoUrl.value ? lessonVideoUrl.value.trim() : '';
+        const moduleTitleValue = moduleTitle && moduleTitle.value ? moduleTitle.value.trim() : '';
+        const moduleDurationValue = moduleDuration && moduleDuration.value ? moduleDuration.value.trim() : '';
         
-        // Skip empty lessons
-        if (!lessonTitleValue || !lessonDurationValue) {
+        console.log(`Module ${moduleIndex}:`, {
+          title: `"${moduleTitleValue}"`,
+          duration: `"${moduleDurationValue}"`
+        });
+        
+        // Skip empty modules
+        if (!moduleTitleValue || !moduleDurationValue) {
+          console.log(`Skipping empty module ${moduleIndex}`);
           return;
         }
         
-        lessons.push({
-          title: lessonTitleValue,
-          duration: lessonDurationValue,
-          videoUrl: lessonVideoUrlValue
+        const lessons = [];
+        const lessonInputs = moduleEl.querySelectorAll('.lesson-input');
+        
+        console.log(`Module ${moduleIndex} has ${lessonInputs.length} lessons`);
+        
+        lessonInputs.forEach((lessonEl, lessonIndex) => {
+          const lessonTitle = lessonEl.querySelector('.lesson-title');
+          const lessonDuration = lessonEl.querySelector('.lesson-duration');
+          const lessonVideoUrl = lessonEl.querySelector('.lesson-video-url');
+          
+          const lessonTitleValue = lessonTitle && lessonTitle.value ? lessonTitle.value.trim() : '';
+          const lessonDurationValue = lessonDuration && lessonDuration.value ? lessonDuration.value.trim() : '';
+          const lessonVideoUrlValue = lessonVideoUrl && lessonVideoUrl.value ? lessonVideoUrl.value.trim() : '';
+          
+          console.log(`Lesson ${lessonIndex}:`, {
+            title: `"${lessonTitleValue}"`,
+            duration: `"${lessonDurationValue}"`,
+            videoUrl: `"${lessonVideoUrlValue}"`
+          });
+          
+          // Skip empty lessons
+          if (!lessonTitleValue || !lessonDurationValue) {
+            console.log(`Skipping empty lesson ${lessonIndex}`);
+            return;
+          }
+          
+          lessons.push({
+            title: lessonTitleValue,
+            duration: lessonDurationValue,
+            videoUrl: lessonVideoUrlValue
+          });
+        });
+        
+        modules.push({
+          title: moduleTitleValue,
+          duration: moduleDurationValue,
+          lessons: lessons
         });
       });
+    }
+    
+    // Validate that at least one module exists
+    if (modules.length === 0) {
+      createNotification('Please add at least one module with a title and duration', 'error');
+      return;
+    }
+    
+    const courseData = {
+      title,
+      description,
+      instructor,
+      price,
+      isFree,
+      imageUrl: validatedImageUrl,
+      panel: panelId,
+      modules: JSON.stringify(modules)
+    };
+    
+    console.log('Course data to be sent:', courseData);
+    
+    const url = courseId ? `${API_BASE_URL}/api/admin/courses/${courseId}` : `${API_BASE_URL}/api/admin/courses`;
+    const method = courseId ? 'PUT' : 'POST';
+    
+    // Show loading notification
+    createNotification(`${courseId ? 'Updating' : 'Creating'} course...`, 'info');
+    
+    fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify(courseData)
+    })
+    .then(response => {
+      console.log('Response status:', response.status);
       
-      modules.push({
-        title: moduleTitleValue,
-        duration: moduleDurationValue,
-        lessons: lessons
-      });
+      if (!response.ok) {
+        return response.json().then(err => { 
+          console.error('Response error:', err);
+          throw err; 
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      createNotification(`Course ${courseId ? 'updated' : 'created'} successfully!`, 'success');
+      
+      if (courseModal) {
+        courseModal.style.opacity = '0';
+        courseModal.style.transform = 'scale(0.9)';
+        courseModal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        
+        setTimeout(() => {
+          courseModal.style.display = 'none';
+        }, 300);
+      }
+      
+      loadAdminCourses();
+    })
+    .catch(error => {
+      console.error('Course save error:', error);
+      createNotification(`Failed to ${courseId ? 'update' : 'create'} course: ${error.message}`, 'error');
     });
   }
-  
-  // Validate that at least one module exists
-  if (modules.length === 0) {
-    createNotification('Please add at least one module with a title and duration', 'error');
-    return;
-  }
-  
-  const courseData = {
-    title,
-    description,
-    instructor,
-    price,
-    isFree,
-    imageUrl: validatedImageUrl,
-    panel: panelId,
-    modules: JSON.stringify(modules)
-  };
-  
-  const url = courseId ? `${API_BASE_URL}/api/admin/courses/${courseId}` : `${API_BASE_URL}/api/admin/courses`;
-  const method = courseId ? 'PUT' : 'POST';
-  
-  // Show loading notification
-  createNotification(`${courseId ? 'Updating' : 'Creating'} course...`, 'info');
-  
-  fetch(url, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
-    },
-    body: JSON.stringify(courseData)
-  })
-  .then(response => {
-    if (!response.ok) {
-      return response.json().then(err => { 
-        console.error('Response error:', err);
-        throw err; 
-      });
-    }
-    return response.json();
-  })
-  .then(data => {
-    createNotification(`Course ${courseId ? 'updated' : 'created'} successfully!`, 'success');
-    
-    if (courseModal) {
-      courseModal.style.display = 'none';
-    }
-    
-    loadAdminCourses();
-  })
-  .catch(error => {
-    console.error('Course save error:', error);
-    createNotification(`Failed to ${courseId ? 'update' : 'create'} course: ${error.message}`, 'error');
-  });
-}
   
   // Edit course
   function editCourse(courseId) {
@@ -3913,207 +3984,213 @@ function handleCourseSubmit(e) {
     });
   }
 
-
-
   // Add this function to handle direct course access
-function handleDirectCourseAccess() {
-  // Check if we're on a course page
-  const path = window.location.pathname;
-  const courseMatch = path.match(/^\/course\/(.+)$/);
-  
-  if (courseMatch) {
-    const courseId = courseMatch[1];
+  function handleDirectCourseAccess() {
+    // Check if we're on a course page
+    const path = window.location.pathname;
+    const courseMatch = path.match(/^\/course\/(.+)$/);
     
-    // Check if user is logged in
-    if (authToken && currentUser) {
-      // User is logged in, check if they have access to this course
-      fetch(`${API_BASE_URL}/api/course/${courseId}`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
-      })
+    if (courseMatch) {
+      const courseId = courseMatch[1];
+      
+      // Check if user is logged in
+      if (authToken && currentUser) {
+        // User is logged in, check if they have access to this course
+        fetch(`${API_BASE_URL}/api/course/${courseId}`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.hasAccess) {
+            // User has access, show course content
+            showSection('courseContent');
+            viewCourseContent(courseId);
+          } else {
+            // User doesn't have access, show course details with purchase option
+            showCourseDetails(courseId);
+          }
+        })
+        .catch(error => {
+          console.error('Error checking course access:', error);
+          showSection('home');
+          createNotification('Failed to load course', 'error');
+        });
+      } else {
+        // User is not logged in, show course details
+        showCourseDetails(courseId);
+      }
+    }
+  }
+
+  // Add this function to show course details for non-enrolled users
+  function showCourseDetails(courseId) {
+    // Fetch course details
+    fetch(`${API_BASE_URL}/api/course/${courseId}`)
       .then(response => response.json())
       .then(data => {
-        if (data.hasAccess) {
-          // User has access, show course content
-          showSection('courseContent');
-          viewCourseContent(courseId);
+        if (data.course) {
+          // Create a temporary section to show course details
+          const courseDetailsSection = document.createElement('section');
+          courseDetailsSection.id = 'course-details-section';
+          courseDetailsSection.className = 'course-details';
+          courseDetailsSection.style.display = 'block';
+          
+          courseDetailsSection.innerHTML = `
+            <div class="container">
+              <div class="course-header">
+                <button id="back-to-home" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Home</button>
+                <h2>${data.course.title}</h2>
+                <p>Instructor: ${data.course.instructor}</p>
+              </div>
+              
+              <div class="course-content">
+                <div class="course-image">
+                  ${data.course.imageUrl ? 
+                    `<img src="${data.course.imageUrl}" alt="${data.course.title}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                     <div class="image-error" style="display: none;">
+                       <i class="fas fa-exclamation-triangle"></i>
+                       <p>Image not available</p>
+                     </div>` : 
+                    `<div class="image-error">
+                       <i class="fas fa-exclamation-triangle"></i>
+                       <p>No image provided</p>
+                     </div>`
+                  }
+                </div>
+                
+                <div class="course-info">
+                  <div class="course-description">
+                    <h3>Course Description</h3>
+                    <p>${data.course.description}</p>
+                  </div>
+                  
+                  <div class="course-meta">
+                    <div class="course-price">
+                      ${data.course.isFree ? 
+                        '<i class="fas fa-gift"></i> Free' : 
+                        `<i class="fas fa-dollar-sign"></i> ${data.course.price}`
+                      }
+                    </div>
+                    ${data.course.panel ? `<div class="course-panel">
+                      <i class="fas fa-folder"></i> ${data.course.panel.name}
+                    </div>` : ''}
+                  </div>
+                  
+                  ${data.hasAccess ? 
+                    `<button class="view-course-btn btn btn-primary" data-course-id="${data.course._id}">
+                      <i class="fas fa-play-circle"></i> View Course
+                    </button>` :
+                    `<div class="access-message">
+                      <p>You need to purchase this course to access the content.</p>
+                      ${!currentUser ? 
+                        `<p>Please <a href="#" id="login-to-access">login</a> or <a href="#" id="signup-to-access">sign up</a> to purchase this course.</p>` :
+                        `<button class="enroll-btn btn btn-primary" data-course-id="${data.course._id}" data-is-free="${data.course.isFree}">
+                          <i class="fas fa-user-plus"></i> Enroll Now
+                        </button>`
+                      }
+                    </div>`
+                  }
+                </div>
+              </div>
+            </div>
+          `;
+          
+          // Add to main content
+          const main = document.querySelector('main');
+          main.appendChild(courseDetailsSection);
+          
+          // Show the section
+          showSection('course-details-section');
+          
+          // Add event listeners
+          const backToHomeBtn = document.getElementById('back-to-home');
+          if (backToHomeBtn) {
+            backToHomeBtn.addEventListener('click', () => {
+              courseDetailsSection.remove();
+              showSection('home');
+            });
+          }
+          
+          const loginToAccessBtn = document.getElementById('login-to-access');
+          if (loginToAccessBtn) {
+            loginToAccessBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              sessionStorage.setItem('enrollAfterLogin', courseId);
+              showSection('login');
+            });
+          }
+          
+          const signupToAccessBtn = document.getElementById('signup-to-access');
+          if (signupToAccessBtn) {
+            signupToAccessBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              sessionStorage.setItem('enrollAfterLogin', courseId);
+              showSection('signup');
+            });
+          }
+          
+          const enrollBtn = courseDetailsSection.querySelector('.enroll-btn');
+          if (enrollBtn) {
+            enrollBtn.addEventListener('click', () => {
+              const isFree = enrollBtn.getAttribute('data-is-free') === 'true';
+              if (isFree) {
+                enrollInFreeCourse(courseId);
+              } else {
+                showEnrollmentConfirmation(courseId);
+              }
+            });
+          }
+          
+          const viewCourseBtn = courseDetailsSection.querySelector('.view-course-btn');
+          if (viewCourseBtn) {
+            viewCourseBtn.addEventListener('click', () => {
+              courseDetailsSection.remove();
+              viewCourseContent(courseId);
+            });
+          }
         } else {
-          // User doesn't have access, show course details with purchase option
-          showCourseDetails(courseId);
+          createNotification('Course not found', 'error');
+          showSection('home');
         }
       })
       .catch(error => {
-        console.error('Error checking course access:', error);
-        showSection('home');
+        console.error('Error loading course details:', error);
         createNotification('Failed to load course', 'error');
-      });
-    } else {
-      // User is not logged in, show course details
-      showCourseDetails(courseId);
-    }
-  }
-}
-
-// Add this function to show course details for non-enrolled users
-function showCourseDetails(courseId) {
-  // Fetch course details
-  fetch(`${API_BASE_URL}/api/course/${courseId}`)
-    .then(response => response.json())
-    .then(data => {
-      if (data.course) {
-        // Create a temporary section to show course details
-        const courseDetailsSection = document.createElement('section');
-        courseDetailsSection.id = 'course-details-section';
-        courseDetailsSection.className = 'course-details';
-        courseDetailsSection.style.display = 'block';
-        
-        courseDetailsSection.innerHTML = `
-          <div class="container">
-            <div class="course-header">
-              <button id="back-to-home" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Home</button>
-              <h2>${data.course.title}</h2>
-              <p>Instructor: ${data.course.instructor}</p>
-            </div>
-            
-            <div class="course-content">
-              <div class="course-image">
-                ${data.course.imageUrl ? 
-                  `<img src="${data.course.imageUrl}" alt="${data.course.title}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                   <div class="image-error" style="display: none;">
-                     <i class="fas fa-exclamation-triangle"></i>
-                     <p>Image not available</p>
-                   </div>` : 
-                  `<div class="image-error">
-                     <i class="fas fa-exclamation-triangle"></i>
-                     <p>No image provided</p>
-                   </div>`
-                }
-              </div>
-              
-              <div class="course-info">
-                <div class="course-description">
-                  <h3>Course Description</h3>
-                  <p>${data.course.description}</p>
-                </div>
-                
-                <div class="course-meta">
-                  <div class="course-price">
-                    <i class="fas fa-dollar-sign"></i> ${data.course.price}
-                  </div>
-                  ${data.course.panel ? `<div class="course-panel">
-                    <i class="fas fa-folder"></i> ${data.course.panel.name}
-                  </div>` : ''}
-                </div>
-                
-                ${data.hasAccess ? 
-                  `<button class="view-course-btn btn btn-primary" data-course-id="${data.course._id}">
-                    <i class="fas fa-play-circle"></i> View Course
-                  </button>` :
-                  `<div class="access-message">
-                    <p>You need to purchase this course to access the content.</p>
-                    ${!currentUser ? 
-                      `<p>Please <a href="#" id="login-to-access">login</a> or <a href="#" id="signup-to-access">sign up</a> to purchase this course.</p>` :
-                      `<button class="enroll-btn btn btn-primary" data-course-id="${data.course._id}">
-                        <i class="fas fa-user-plus"></i> Enroll Now
-                      </button>`
-                    }
-                  </div>`
-                }
-              </div>
-            </div>
-          </div>
-        `;
-        
-        // Add to main content
-        const main = document.querySelector('main');
-        main.appendChild(courseDetailsSection);
-        
-        // Show the section
-        showSection('course-details-section');
-        
-        // Add event listeners
-        const backToHomeBtn = document.getElementById('back-to-home');
-        if (backToHomeBtn) {
-          backToHomeBtn.addEventListener('click', () => {
-            courseDetailsSection.remove();
-            showSection('home');
-          });
-        }
-        
-        const loginToAccessBtn = document.getElementById('login-to-access');
-        if (loginToAccessBtn) {
-          loginToAccessBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            sessionStorage.setItem('enrollAfterLogin', courseId);
-            showSection('login');
-          });
-        }
-        
-        const signupToAccessBtn = document.getElementById('signup-to-access');
-        if (signupToAccessBtn) {
-          signupToAccessBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            sessionStorage.setItem('enrollAfterLogin', courseId);
-            showSection('signup');
-          });
-        }
-        
-        const enrollBtn = courseDetailsSection.querySelector('.enroll-btn');
-        if (enrollBtn) {
-          enrollBtn.addEventListener('click', () => {
-            showEnrollmentConfirmation(courseId);
-          });
-        }
-        
-        const viewCourseBtn = courseDetailsSection.querySelector('.view-course-btn');
-        if (viewCourseBtn) {
-          viewCourseBtn.addEventListener('click', () => {
-            courseDetailsSection.remove();
-            viewCourseContent(courseId);
-          });
-        }
-      } else {
-        createNotification('Course not found', 'error');
         showSection('home');
-      }
-    })
-    .catch(error => {
-      console.error('Error loading course details:', error);
-      createNotification('Failed to load course', 'error');
-      showSection('home');
-    });
-}
-
-// Update the init function to check for direct course access on page load
-function init() {
-  // Check if user is logged in
-  if (authToken) {
-    verifyTokenWithServer();
-  } else {
-    // Show home section immediately without waiting for animations
-    showSection('home');
-    updateUI();
-    loadPublicCourses(); // Load public courses for non-logged in users
+      });
   }
-  
-  // Check for direct course access
-  handleDirectCourseAccess();
-  
-  // Event listeners
-  setupEventListeners();
-  
-  // Add beautiful entrance animations
-  addEntranceAnimations();
-  
-  // Ensure home section is visible after a short delay
-  setTimeout(() => {
-    if (!authToken && sections.home) {
-      sections.home.style.opacity = '1';
-      sections.home.style.transform = 'translateY(0)';
+
+  // Update the init function to check for direct course access on page load
+  function init() {
+    // Check if user is logged in
+    if (authToken) {
+      verifyTokenWithServer();
+    } else {
+      // Show home section immediately without waiting for animations
+      showSection('home');
+      updateUI();
+      loadPublicCourses(); // Load public courses for non-logged in users
     }
-  }, 100);
-}
+    
+    // Check for direct course access
+    handleDirectCourseAccess();
+    
+    // Event listeners
+    setupEventListeners();
+    
+    // Add beautiful entrance animations
+    addEntranceAnimations();
+    
+    // Ensure home section is visible after a short delay
+    setTimeout(() => {
+      if (!authToken && sections.home) {
+        sections.home.style.opacity = '1';
+        sections.home.style.transform = 'translateY(0)';
+      }
+    }, 100);
+  }
 
   // -------------------------------------------------------------------------
   // Mobile menu toggle functionality
