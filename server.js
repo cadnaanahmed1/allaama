@@ -68,17 +68,18 @@ const panelSchema = new mongoose.Schema({
   description: { type: String }
 });
 
+// Update the course schema to include isFree field
 const courseSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
   instructor: { type: String, required: true },
   price: { type: Number, required: true },
+  isFree: { type: Boolean, default: false }, // New field to indicate if course is free
   imageUrl: { 
     type: String, 
     required: [true, 'Course image URL is required'],
     validate: {
       validator: function(v) {
-        // Check if it's a valid URL
         try {
           new URL(v);
           return true;
@@ -100,6 +101,7 @@ const courseSchema = new mongoose.Schema({
     }]
   }]
 });
+
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -889,18 +891,25 @@ app.get('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), asy
 });
 
 // COURSE CREATION
+
+// Update course creation endpoint
 app.post('/api/admin/courses', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
-    const { title, description, modules, price, instructor, imageUrl, panel } = req.body;
+    const { title, description, modules, price, isFree, instructor, imageUrl, panel } = req.body;
     
     console.log('Course creation request:', req.body);
-    console.log('Image URL received:', imageUrl);
-    console.log('Panel ID received:', panel);
     
     // Validate required fields
-    if (!title || !description || !instructor || price === undefined || price === null || !panel) {
+    if (!title || !description || !instructor || isFree === undefined || isFree === null || !panel) {
       return res.status(400).json({ 
-        message: 'Title, description, instructor, price, and panel are required fields.' 
+        message: 'Title, description, instructor, course type (free/paid), and panel are required fields.' 
+      });
+    }
+    
+    // If course is not free, price is required
+    if (!isFree && (price === undefined || price === null)) {
+      return res.status(400).json({ 
+        message: 'Price is required for paid courses.' 
       });
     }
     
@@ -927,14 +936,10 @@ app.post('/api/admin/courses', authenticateToken, authorizeRole('admin'), async 
       });
     }
     
-    console.log('Validated image URL:', validatedImageUrl);
-    
     let parsedModules;
     try {
       parsedModules = modules ? JSON.parse(modules) : [];
-      console.log('Parsed modules:', parsedModules);
     } catch (parseError) {
-      console.error('Error parsing modules JSON:', parseError);
       return res.status(400).json({ 
         message: 'Invalid modules format. Please ensure modules are valid JSON.' 
       });
@@ -949,7 +954,6 @@ app.post('/api/admin/courses', authenticateToken, authorizeRole('admin'), async 
     
     // Process modules and ensure they have the required structure
     const processedModules = parsedModules.map(module => {
-      // Validate module structure
       if (!module.title || !module.duration) {
         throw new Error('Each module must have a title and duration');
       }
@@ -978,24 +982,19 @@ app.post('/api/admin/courses', authenticateToken, authorizeRole('admin'), async 
       return processedModule;
     });
     
-    console.log('Processed modules:', processedModules);
-    
-    // Create course with validated image URL and panel
+    // Create course with validated data
     const newCourse = new Course({
       title,
       description,
       instructor,
-      price: Number(price),
+      price: isFree ? 0 : Number(price),
+      isFree,
       imageUrl: validatedImageUrl,
       panel: panel,
       modules: processedModules
     });
     
-    console.log('New course object before save:', newCourse);
-    
     await newCourse.save();
-    
-    console.log('Course saved successfully:', newCourse);
     
     // Return the saved course with populated data
     const savedCourse = await Course.findById(newCourse._id).populate('panel', 'name');
@@ -1013,13 +1012,10 @@ app.post('/api/admin/courses', authenticateToken, authorizeRole('admin'), async 
 });
 
 // COURSE UPDATE
+// Update course update endpoint
 app.put('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
-    const { title, description, modules, price, instructor, imageUrl, panel } = req.body;
-    
-    console.log('Course update request:', req.body);
-    console.log('Image URL received:', imageUrl);
-    console.log('Panel ID received:', panel);
+    const { title, description, modules, price, isFree, instructor, imageUrl, panel } = req.body;
     
     // Find the course first
     const course = await Course.findById(req.params.id);
@@ -1029,9 +1025,16 @@ app.put('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), asy
     }
     
     // Validate required fields
-    if (!title || !description || !instructor || price === undefined || price === null || !panel) {
+    if (!title || !description || !instructor || isFree === undefined || isFree === null || !panel) {
       return res.status(400).json({ 
-        message: 'Title, description, instructor, price, and panel are required fields.' 
+        message: 'Title, description, instructor, course type (free/paid), and panel are required fields.' 
+      });
+    }
+    
+    // If course is not free, price is required
+    if (!isFree && (price === undefined || price === null)) {
+      return res.status(400).json({ 
+        message: 'Price is required for paid courses.' 
       });
     }
     
@@ -1058,14 +1061,10 @@ app.put('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), asy
       });
     }
     
-    console.log('Validated image URL:', validatedImageUrl);
-    
     let parsedModules;
     try {
       parsedModules = modules ? JSON.parse(modules) : [];
-      console.log('Parsed modules:', parsedModules);
     } catch (parseError) {
-      console.error('Error parsing modules JSON:', parseError);
       return res.status(400).json({ 
         message: 'Invalid modules format. Please ensure modules are valid JSON.' 
       });
@@ -1080,7 +1079,6 @@ app.put('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), asy
     
     // Process modules and ensure they have the required structure
     const processedModules = parsedModules.map(module => {
-      // Validate module structure
       if (!module.title || !module.duration) {
         throw new Error('Each module must have a title and duration');
       }
@@ -1109,22 +1107,17 @@ app.put('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), asy
       return processedModule;
     });
     
-    console.log('Processed modules:', processedModules);
-    
-    // Update course fields with validated image URL and panel
+    // Update course fields
     course.title = title;
     course.description = description;
     course.instructor = instructor;
-    course.price = Number(price);
+    course.price = isFree ? 0 : Number(price);
+    course.isFree = isFree;
     course.imageUrl = validatedImageUrl;
     course.panel = panel;
     course.modules = processedModules;
     
-    console.log('Course object before save:', course);
-    
     await course.save();
-    
-    console.log('Course updated successfully:', course);
     
     // Return the updated course
     const updatedCourse = await Course.findById(course._id).populate('panel', 'name');
@@ -1140,6 +1133,8 @@ app.put('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), asy
     });
   }
 });
+
+
 
 app.delete('/api/admin/courses/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
@@ -1282,6 +1277,8 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Internal server error' });
 });
 
+
+// Update enrollment endpoint to handle free courses
 app.post('/api/student/enroll', authenticateToken, async (req, res) => {
   try {
     const { courseId } = req.body;
@@ -1322,7 +1319,7 @@ app.post('/api/student/enroll', authenticateToken, async (req, res) => {
     const newEnrollment = new Enrollment({
       userId: req.user.id,
       courseId,
-      status: 'pending'
+      status: course.isFree ? 'active' : 'pending' // Auto-approve for free courses
     });
     
     await newEnrollment.save();
@@ -1331,16 +1328,25 @@ app.post('/api/student/enroll', authenticateToken, async (req, res) => {
     const populatedEnrollment = await Enrollment.findById(newEnrollment._id)
       .populate('courseId');
     
-    res.status(201).json({ 
-      message: 'Enrollment request submitted successfully', 
-      enrollment: populatedEnrollment,
-      paymentInfo: {
-        contactNumber: '+252 661142158',
-        paymentNumber: '+252 0771351394',
-        warning: 'Please do not confuse the Contact Number with the Payment Number. Use the Contact Number only for communication. Use the Payment Number only for sending your course fee.',
-        instruction: 'After sending the payment, please send your username via WhatsApp to the contact number. The admin will verify your payment and approve your enrollment.'
-      }
-    });
+    if (course.isFree) {
+      // For free courses, return success message without payment info
+      res.status(201).json({ 
+        message: 'Enrollment successful! You now have access to this course.', 
+        enrollment: populatedEnrollment
+      });
+    } else {
+      // For paid courses, return payment info
+      res.status(201).json({ 
+        message: 'Enrollment request submitted successfully', 
+        enrollment: populatedEnrollment,
+        paymentInfo: {
+          contactNumber: '+252 661142158',
+          paymentNumber: '+252 0771351394',
+          warning: 'Please do not confuse the Contact Number with the Payment Number. Use the Contact Number only for communication. Use the Payment Number only for sending your course fee.',
+          instruction: 'After sending the payment, please send your username via WhatsApp to the contact number. The admin will verify your payment and approve your enrollment.'
+        }
+      });
+    }
   } catch (error) {
     console.error('Enrollment error:', error);
     
