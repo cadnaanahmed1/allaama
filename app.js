@@ -1,8 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Define the base URL for the API
   //const API_BASE_URL = 'https://allaama-1-sv5y.onrender.com';
-  const API_BASE_URL = 'https://asayr-allaama.hf.space';
+  // const API_BASE_URL = 'https://asayr-allaama.hf.space';
   // const API_BASE_URL = 'https://allaama-2.onrender.com';
+     const API_BASE_URL = 'https://allaama-dl9c.onrender.com/';
+
   
   // DOM Elements
   const sections = {
